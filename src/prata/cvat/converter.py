@@ -11,6 +11,7 @@ def datumaro_to_coco(
     input_path: Path,
     output_path: Path,
     save_images: bool,
+    filter_negative: bool=False,
     debug: bool=False
 ):
     output_path.mkdir(exist_ok=True, parents=True)
@@ -38,13 +39,21 @@ def datumaro_to_coco(
         labels = list(map(lambda x: x["name"], obj["categories"]["label"]["labels"]))
         ann_obj = create_default_coco(labels, list(range(len(labels))))        
         ann_id = 1
+        count_frame_id = 1
+        original_fid_2_final_fid = {}
         for item in items:
             frame_id = item["attr"]["frame"]
+            n_annotations = len(item["annotations"])
+            if filter_negative and n_annotations == 0:
+                continue
+            original_fid_2_final_fid[frame_id] = count_frame_id
             frame_name = item["image"]["path"]
             hw = item["image"]["size"]
             boxes = []
             lmks = []
             image_info = create_image_info(frame_id, hw[1], hw[0], frame_name)
+            if filter_negative:
+                image_info["id"] = original_fid_2_final_fid[int(image_info["id"])]
             ann_obj["images"].append(image_info)
 
             for ann in item["annotations"]:
@@ -79,9 +88,11 @@ def datumaro_to_coco(
                 }
                 if "landmarks" in box:
                     attrs["landmarks"] = box["landmarks"]
-                box_obj = create_annotation(ann_id, frame_id, box["label_id"],  box["bbox"], attrs)
+                final_frame_id = frame_id if not filter_negative else original_fid_2_final_fid[frame_id]
+                box_obj = create_annotation(ann_id, final_frame_id, box["label_id"],  box["bbox"], attrs)
                 ann_obj["annotations"].append(box_obj)
                 ann_id += 1
+            count_frame_id += 1
         ann_obj["images"] = sorted(ann_obj["images"], key=lambda x: int(x["id"]))
         with open(json_path, "w") as f:
             json.dump(ann_obj, f, indent=2)
