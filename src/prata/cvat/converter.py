@@ -1,5 +1,6 @@
 import json
 import numpy as np
+from tqdm.rich import tqdm
 from pathlib import Path
 import shutil
 
@@ -16,10 +17,12 @@ def datumaro_to_coco(
     if input_path.is_file():
         input_paths.append(input_path)
     elif input_path.is_dir():
-        input_paths = input_path.rglob("*/annotations/default.json")
-
-    for input_path in input_paths:
+        input_paths = list(input_path.rglob("*/annotations/default.json"))
+    assert len(input_paths) != 0, "Cant find any json!"
+    pbar = tqdm(input_paths)
+    for input_path in pbar:
         dataset_name = input_path.parent.parent.parent.name
+        pbar.set_description(dataset_name)
         input_imgpath = input_path.parent.parent / "images"
         cur_outpath = output_path / dataset_name
         annotations_path = cur_outpath / "annotations"
