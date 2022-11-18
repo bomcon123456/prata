@@ -53,6 +53,8 @@ def datumaro_to_coco(
                 elif ann["type"] == "points":
                     lmks.append(ann)
             for lmk in lmks:
+                if len(lmk["points"]) != 10:
+                    continue
                 pts = np.array(lmk["points"]).reshape(-1,2)
                 min_xy = min(pts[:,0]), min(pts[:,1])
                 max_xy = min(pts[:,0]), min(pts[:,1])
