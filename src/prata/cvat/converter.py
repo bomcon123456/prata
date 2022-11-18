@@ -10,7 +10,8 @@ from .utils import max_ioa
 def datumaro_to_coco(
     input_path: Path,
     output_path: Path,
-    save_images: bool
+    save_images: bool,
+    debug: bool=False
 ):
     output_path.mkdir(exist_ok=True, parents=True)
     input_paths = []
@@ -63,10 +64,12 @@ def datumaro_to_coco(
                     ltrb = ltwh
                     ltrb[2:] += ltwh[:2]
                     ioa = max_ioa(bound_ltrb, ltrb)
+                    if debug:
+                        print("ioa=", ioa)
                     if ioa > max_ioa_:
                         founded_box = b
                         max_ioa_ = ioa
-                assert founded_box is not None, f"Cant find box for landmark! {bound_ltrb} vs {boxes}"
+                assert founded_box is not None, f"Cant find box for landmark! {dataset_name}, frameid={frame_id}"
                 founded_box["landmarks"] = lmk["points"]
             for box in boxes:
                 attrs = {

@@ -9,9 +9,10 @@ app = typer.Typer()
 def datumaro_to_coco(
     input_path: Path = typer.Argument(..., help="Path to input", exists=True),
     output_path: Path = typer.Argument(..., help="Path to output"),
-    save_images: bool = typer.Option(False, help="save image too")
+    save_images: bool = typer.Option(False, help="save image too"),
+    debug: bool = typer.Option(False, help="debug")
 ):
-    converter.datumaro_to_coco(input_path, output_path, save_images)
+    converter.datumaro_to_coco(input_path, output_path, save_images, debug)
 
 @app.command()
 def push_task(
