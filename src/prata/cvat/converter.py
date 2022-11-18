@@ -57,14 +57,15 @@ def datumaro_to_coco(
                 max_xy = min(pts[:,0]), min(pts[:,1])
                 bound_ltrb = [*min_xy, *max_xy]
                 founded_box = None
+                max_ioa = 0
                 for b in boxes:
                     ltwh = np.array(b["bbox"])
                     ltrb = ltwh
                     ltrb[2:] += ltwh[:2]
                     ioa = max_ioa(bound_ltrb, ltrb)
-                    if ioa == 1.0:
+                    if ioa > max_ioa:
                         founded_box = b
-                        break
+                        max_ioa = ioa
                 assert founded_box is not None, f"Cant find box for landmark! {bound_ltrb} vs {boxes}"
                 founded_box["landmarks"] = lmk["points"]
             for box in boxes:
