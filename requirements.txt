@@ -1,0 +1,5 @@
+# --------- others --------- #
+pyrootutils     # standardizing the project root setup
+pre-commit      # hooks for applying linters on commit
+rich            # beautiful text formatting in terminal
+pytest          # tests
