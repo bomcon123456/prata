@@ -39,7 +39,7 @@ def zipfiles(
 def rename_folders(input_path: Path = typer.Argument(..., help="root input path")):
     folders = list(os.listdir(input_path))
     for folder in tqdm(folders):
-        folder_name_new = folder.replace(".", "_")
+        folder_name_new = folder.replace(".", "_").lower()
         folder_old = input_path / folder
         folder_new = input_path / folder_name_new
         shutil.move(folder_old, folder_new)
