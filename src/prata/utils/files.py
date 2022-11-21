@@ -1,4 +1,5 @@
 import os
+import shutil
 import zipfile
 from pathlib import Path
 from zipfile import ZipFile
@@ -32,7 +33,16 @@ def zipfiles(
         files = natsorted(input_path.rglob("*"))
         with ZipFile("compressedtextstuff.zip", "w", zipfile.ZIP_DEFLATED) as myzip:
             myzip.write("testtext.txt")
+        
 
+@app.command()
+def rename_folders(input_path: Path = typer.Argument(..., help="root input path")):
+    folders = list(os.listdir(input_path))
+    for folder in tqdm(folders):
+        folder_name_new = folder.replace(".", "_")
+        folder_old = input_path / folder
+        folder_new = input_path / folder_name_new
+        shutil.move(folder_old, folder_new)
 
 if __name__ == "__main__":
     app()
