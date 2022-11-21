@@ -7,7 +7,7 @@ app = typer.Typer()
 @app.command()
 def create_coco_dataset(
     name : Path = typer.Argument(..., help="name"),
-    data_path : Path = typer.Argument(..., help="path to dataset"),
+    data_path : Path = typer.Argument(..., help="path to dataset", exists=True),
     label_path : Path = typer.Option(None, help="path to dataset"),
 ):
     d = dict(
@@ -15,10 +15,10 @@ def create_coco_dataset(
         name=name
     )
     if label_path is None:
-        d["dataset_dir"] = data_path 
+        d["dataset_dir"] = data_path.resolve().as_posix()
     else:
-        d["data_path"] = data_path
-        d["labels_path"] = label_path
+        d["data_path"] = data_path.resolve().as_posix()
+        d["labels_path"] = label_path.resolve().as_posix()
 
     fo.Dataset.from_dir(
         **d
