@@ -21,6 +21,5 @@ def create_coco_dataset(
         d["labels_path"] = label_path
 
     fo.Dataset.from_dir(
-        dataset_type=fo.types.COCODetectionDataset,
         **d
     )
