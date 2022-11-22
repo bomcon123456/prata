@@ -20,6 +20,8 @@ def create_coco_dataset(
         d["data_path"] = data_path.resolve().as_posix()
         d["labels_path"] = label_path.resolve().as_posix()
 
-    fo.Dataset.from_dir(
+    dataset = fo.Dataset.from_dir(
         **d
     )
+    session = fo.launch_app(dataset)
+    input()

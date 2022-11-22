@@ -7,3 +7,4 @@ numpy
 typer
 natsort
 tqdm
+cython_bbox

@@ -3,11 +3,13 @@ import os
 import shutil
 from pathlib import Path
 
+from prata.specifics.kidnap.utils import crop_for_one_video
+
 app = typer.Typer()
 
 
 @app.command()
-def move(
+def split_train_val(
     input_path: Path = typer.Argument(..., help="Path to input"),
     output_path: Path = typer.Option("./out", help="output path"),
 ):
@@ -43,6 +45,14 @@ def move(
         p = input_path / tf
         assert p.exists()
         shutil.copytree(p, train_path / tf)
+
+
+@app.command()
+def crop_static_videos(
+    input_path: Path = typer.Argument(..., help="Base inputpath"),
+    num_negs: int = typer.Option(100, help="Number of negative videos generating."),
+):
+    crop_for_one_video(input_path, num_negs)
 
 
 if __name__ == "__main__":
