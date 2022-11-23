@@ -1,9 +1,11 @@
 import typer
+from tqdm import tqdm
+from natsort import natsorted
 import os
 import shutil
 from pathlib import Path
 
-from prata.specifics.kidnap.utils import crop_for_one_video
+from prata.specifics.kidnap.utils import crop_for_one_video, create_rider_from_ann
 
 app = typer.Typer()
 
@@ -49,11 +51,42 @@ def split_train_val(
 
 @app.command()
 def crop_static_videos(
-    input_path: Path = typer.Argument(..., help="Base inputpath"),
-    num_negs: int = typer.Option(100, help="Number of negative videos generating."),
+    video_basepath: Path = typer.Argument(..., help="Base video_path"),
+    annotation_basepath: Path = typer.Argument(..., help="Base annotation_path"),
+    output_path: Path = typer.Option("./out", help="Output path"),
+    num_negs: int = typer.Option(25, help="Number of negative videos generating."),
 ):
-    crop_for_one_video(input_path, num_negs)
+    annotation_paths = list(annotation_basepath.rglob("instances_default.json"))
+    output_path.mkdir(exist_ok=True, parents=True)
+    pbar = tqdm(natsorted(annotation_paths))
+    for annotation_path in pbar:
+        video_name = annotation_path.parent.parent.name
+        pbar.set_description(f"{video_name}")
 
+        video_path = video_basepath / f"{video_name}.mp4"
+        assert video_path.exists(), f"{video_path} not exists!"
+        out = output_path / f"{video_name}"
+        if out.exists(): continue
+        (out/"pos").mkdir(exist_ok=True, parents=True)
+        (out/"neg").mkdir(exist_ok=True, parents=True)
+        crop_for_one_video(video_path, annotation_path, out, num_negs)
+
+@app.command()
+def create_rider_dataset(
+    input_path: Path = typer.Argument(..., help="Base input path"),
+    output_path: Path = typer.Option("./rider_dataset", help="output path")
+):
+   
+    annotation_paths = list(input_path.rglob("instances_default.json"))
+    output_path.mkdir(exist_ok=True, parents=True)
+    pbar = tqdm(natsorted(annotation_paths))
+    for annotation_path in pbar:
+        dataset_name = annotation_path.parent.parent.name
+        pbar.set_description(dataset_name)
+        p = output_path / dataset_name
+        p.mkdir(exist_ok=True, parents=True)
+        create_rider_from_ann(annotation_path, p)
+    
 
 if __name__ == "__main__":
     app()
