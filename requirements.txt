@@ -11,3 +11,4 @@ Cython
 cython_bbox
 decord
 opencv-python
+matplotlib

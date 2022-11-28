@@ -1,3 +1,4 @@
+from genericpath import exists
 import os
 import shutil
 import zipfile
@@ -24,16 +25,16 @@ def zipfiles(
     dirs = []
     if level == 0:
         dirs = [input_path]
-    elif level ==1:
-        dirs = list(map(lambda x: input_path/x, os.listdir(input_path)))
-        
+    elif level == 1:
+        dirs = list(map(lambda x: input_path / x, os.listdir(input_path)))
+
     pbar = tqdm(natsorted(dirs))
     output_path.mkdir(exist_ok=True, parents=True)
     for input_path in pbar:
         files = natsorted(input_path.rglob("*"))
         with ZipFile("compressedtextstuff.zip", "w", zipfile.ZIP_DEFLATED) as myzip:
             myzip.write("testtext.txt")
-        
+
 
 @app.command()
 def rename_folders(input_path: Path = typer.Argument(..., help="root input path")):
@@ -43,6 +44,25 @@ def rename_folders(input_path: Path = typer.Argument(..., help="root input path"
         folder_old = input_path / folder
         folder_new = input_path / folder_name_new
         shutil.move(folder_old, folder_new)
+
+
+@app.command()
+def move_file_keep_parent_name(
+    input_path: Path = typer.Argument(..., help="input path"),
+    output_path: Path = typer.Argument(..., help="Output path"),
+):
+    exts = set([".jpeg", ".jpg", ".png", ".mp4", ".avi"])
+    files = list(input_path.rglob("*"))
+    for file in tqdm(files):
+        if file.suffix.lower() not in exts:
+            continue
+        prefix = file.parent.parent.name
+        new_name = prefix + "_" + file.name
+        new_path = output_path / file.parent.name / new_name
+        new_path.parent.mkdir(exist_ok=True, parents=True)
+        assert not new_path.exists(), f"{new_path} existed."
+        shutil.copy2(file, new_path)
+
 
 if __name__ == "__main__":
     app()
