@@ -12,3 +12,4 @@ cython_bbox
 decord
 opencv-python
 matplotlib
+xmltodict

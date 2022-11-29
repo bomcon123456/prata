@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 
 from prata.specifics.kidnap.utils import crop_for_one_video, create_rider_from_ann
+from prata.specifics.kidnap.idd import cut_rider_from_idd_xml
 
 app = typer.Typer()
 
@@ -66,17 +67,19 @@ def crop_static_videos(
         video_path = video_basepath / f"{video_name}.mp4"
         assert video_path.exists(), f"{video_path} not exists!"
         out = output_path / f"{video_name}"
-        if out.exists(): continue
-        (out/"pos").mkdir(exist_ok=True, parents=True)
-        (out/"neg").mkdir(exist_ok=True, parents=True)
+        if out.exists():
+            continue
+        (out / "pos").mkdir(exist_ok=True, parents=True)
+        (out / "neg").mkdir(exist_ok=True, parents=True)
         crop_for_one_video(video_path, annotation_path, out, num_negs)
+
 
 @app.command()
 def create_rider_dataset(
     input_path: Path = typer.Argument(..., help="Base input path"),
-    output_path: Path = typer.Option("./rider_dataset", help="output path")
+    output_path: Path = typer.Option("./rider_dataset", help="output path"),
 ):
-   
+
     annotation_paths = list(input_path.rglob("instances_default.json"))
     output_path.mkdir(exist_ok=True, parents=True)
     pbar = tqdm(natsorted(annotation_paths))
@@ -86,7 +89,27 @@ def create_rider_dataset(
         p = output_path / dataset_name
         p.mkdir(exist_ok=True, parents=True)
         create_rider_from_ann(annotation_path, p)
-    
+
+
+@app.command()
+def create_rider_dataset_from_idd(
+    annotation_path: Path = typer.Argument(..., help="Base input path"),
+    img_path: Path = typer.Argument(..., help="Base img path"),
+    output_path: Path = typer.Option("./rider_dataset", help="output path"),
+    pad_size: int = typer.Option(15, help="padding size"),
+    save_full_frames: bool = typer.Option(False, help="save full frames"),
+    save_flatten: bool = typer.Option(False, help="save flatten"),
+):
+    annotation_paths = list(annotation_path.rglob("*.xml"))
+    output_path.mkdir(exist_ok=True, parents=True)
+    pbar = tqdm(natsorted(annotation_paths))
+    for annotation_path in pbar:
+        dataset_name = annotation_path.parent.parent.name
+        pbar.set_description(dataset_name)
+        cut_rider_from_idd_xml(
+            annotation_path, img_path, output_path, pad_size, save_full_frames, save_flatten
+        )
+
 
 if __name__ == "__main__":
     app()
