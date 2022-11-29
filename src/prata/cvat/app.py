@@ -16,6 +16,15 @@ def datumaro_to_coco(
     converter.datumaro_to_coco(input_path, output_path, save_images, filter_negative, debug)
 
 @app.command()
+def datumaro_to_wider(
+    input_path: Path = typer.Argument(..., help="Path to input", exists=True),
+    output_path: Path = typer.Argument(..., help="Path to output"),
+    filter_negative: bool = typer.Option(False, help="filter negative"),
+    debug: bool = typer.Option(False, help="debug")
+):
+    converter.datumaro_to_widerface(input_path, output_path, filter_negative, debug)
+
+@app.command()
 def push_task(
     project_id: int = typer.Argument(..., help="Project id"),
     datapath: Path = typer.Argument(..., help="datapath", exists=True),
