@@ -1,4 +1,5 @@
 import json
+from collections import defaultdict
 import os
 import typer
 import pandas as pd
@@ -83,6 +84,36 @@ def selfgen_poseify(
             
     pass
     
+
+@app.command()
+def merge_jsons(
+    input_basepath: Path = typer.Argument(...,help="input path", exists=True, dir_okay=True),
+    output_path: Path = typer.Argument(..., help="output path"),
+    plot_dist: bool = typer.Option(True, help="plot pose dist"),
+):
+    jsons = input_basepath.rglob("*/datasets.json")
+    labels = []
+    for json_p in jsons:
+        with open(json_p, "r") as f:
+            tmp = json.load(f)
+        labels.extend(tmp["labels"])
+    d = defaultdict(int)
+    for label in labels:
+        if "test" in label[0] or "train" in label[0]:
+            label[0] = "pairs_iqa60+/" + label[0]
+        d[label[1]] += 1
+        
+    if plot_dist:
+        output_path.mkdir(parents=True, exist_ok=True)
+        plt.bar(list(d.keys()), list(d.values()), color="maroon")
+        plt.xlabel("Pose")
+        plt.ylabel("Count")
+        plt.title("Dataset label distribution")
+        plt.savefig((output_path/"pitch_yaw.png").as_posix())
+
+    out = {"labels":labels}
+    with open(output_path/"datasets.json", "w") as f:
+        json.dump(out, f)
 
 if __name__ == "__main__":
     app()

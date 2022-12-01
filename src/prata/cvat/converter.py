@@ -173,11 +173,15 @@ def datumaro_to_widerface(
             
             out_img_path = cur_outpath / Path(frame_name).name
             out_txt_path = cur_outpath / (Path(frame_name).stem + ".txt")
-            if len(boxes) == 0 and filter_negative:
+            final_boxes = []
+            for box in boxes:
+                if "landmarks" in box:
+                    final_boxes.append(box)
+            if len(final_boxes) == 0 and filter_negative:
                 continue
             shutil.copy2(img_path, out_img_path)
             f = open(out_txt_path, "w")
-            for box in boxes:
+            for box in final_boxes:
                 box_ltwh = np.array(box["bbox"])
                 box_ltrb = box_ltwh
                 box_ltrb[2:] += box_ltwh[:2]
