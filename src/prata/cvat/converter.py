@@ -7,12 +7,13 @@ import shutil
 from .coco_utils import *
 from .utils import max_ioa
 
+
 def datumaro_to_coco(
     input_path: Path,
     output_path: Path,
     save_images: bool,
-    filter_negative: bool=False,
-    debug: bool=False
+    filter_negative: bool = False,
+    debug: bool = False,
 ):
     output_path.mkdir(exist_ok=True, parents=True)
     input_paths = []
@@ -31,13 +32,13 @@ def datumaro_to_coco(
         images_path = cur_outpath / "images"
         annotations_path.mkdir(parents=True, exist_ok=True)
         images_path.mkdir(parents=True, exist_ok=True)
-        json_path = annotations_path/"instances_default.json"
-        
+        json_path = annotations_path / "instances_default.json"
+
         with open(input_path, "r") as f:
             obj = json.load(f)
         items = obj["items"]
         labels = list(map(lambda x: x["name"], obj["categories"]["label"]["labels"]))
-        ann_obj = create_default_coco(labels, list(range(len(labels))))        
+        ann_obj = create_default_coco(labels, list(range(len(labels))))
         ann_id = 1
         count_frame_id = 1
         original_fid_2_final_fid = {}
@@ -64,9 +65,9 @@ def datumaro_to_coco(
             for lmk in lmks:
                 if len(lmk["points"]) != 10:
                     continue
-                pts = np.array(lmk["points"]).reshape(-1,2)
-                min_xy = min(pts[:,0]), min(pts[:,1])
-                max_xy = min(pts[:,0]), min(pts[:,1])
+                pts = np.array(lmk["points"]).reshape(-1, 2)
+                min_xy = min(pts[:, 0]), min(pts[:, 1])
+                max_xy = min(pts[:, 0]), min(pts[:, 1])
                 bound_ltrb = [*min_xy, *max_xy]
                 founded_box = None
                 max_ioa_ = 0
@@ -80,16 +81,22 @@ def datumaro_to_coco(
                     if ioa > max_ioa_:
                         founded_box = b
                         max_ioa_ = ioa
-                assert founded_box is not None, f"Cant find box for landmark! {dataset_name}, frameid={frame_id}"
+                assert (
+                    founded_box is not None
+                ), f"Cant find box for landmark! {dataset_name}, frameid={frame_id}"
                 founded_box["landmarks"] = lmk["points"]
             for box in boxes:
-                attrs = {
-                    **box["attributes"]
-                }
+                attrs = {**box["attributes"]}
                 if "landmarks" in box:
                     attrs["landmarks"] = box["landmarks"]
-                final_frame_id = frame_id if not filter_negative else original_fid_2_final_fid[frame_id]
-                box_obj = create_annotation(ann_id, final_frame_id, box["label_id"],  box["bbox"], attrs)
+                final_frame_id = (
+                    frame_id
+                    if not filter_negative
+                    else original_fid_2_final_fid[frame_id]
+                )
+                box_obj = create_annotation(
+                    ann_id, final_frame_id, box["label_id"], box["bbox"], attrs
+                )
                 ann_obj["annotations"].append(box_obj)
                 ann_id += 1
             count_frame_id += 1
@@ -101,12 +108,13 @@ def datumaro_to_coco(
                 src = input_imgpath / img_obj["file_name"]
                 dst = cur_outpath / img_obj["file_name"]
                 shutil.copy2(src, dst)
-        
+
+
 def datumaro_to_widerface(
     input_path: Path,
     output_path: Path,
-    filter_negative: bool=False,
-    debug: bool=False
+    filter_negative: bool = False,
+    debug: bool = False,
 ):
     output_path.mkdir(exist_ok=True, parents=True)
     input_paths = []
@@ -121,12 +129,12 @@ def datumaro_to_widerface(
         pbar.set_description(dataset_name)
         input_imgpath = input_path.parent.parent / "images"
         cur_outpath = output_path
-        
+
         with open(input_path, "r") as f:
             obj = json.load(f)
         items = obj["items"]
         labels = list(map(lambda x: x["name"], obj["categories"]["label"]["labels"]))
-        ann_obj = create_default_coco(labels, list(range(len(labels))))        
+        ann_obj = create_default_coco(labels, list(range(len(labels))))
         for item in items:
             frame_id = item["attr"]["frame"]
             n_annotations = len(item["annotations"])
@@ -150,9 +158,9 @@ def datumaro_to_widerface(
             for lmk in lmks:
                 if len(lmk["points"]) != 10:
                     continue
-                pts = np.array(lmk["points"]).reshape(-1,2)
-                min_xy = min(pts[:,0]), min(pts[:,1])
-                max_xy = min(pts[:,0]), min(pts[:,1])
+                pts = np.array(lmk["points"]).reshape(-1, 2)
+                min_xy = min(pts[:, 0]), min(pts[:, 1])
+                max_xy = min(pts[:, 0]), min(pts[:, 1])
                 bound_ltrb = [*min_xy, *max_xy]
                 founded_box = None
                 max_ioa_ = 0
@@ -166,11 +174,13 @@ def datumaro_to_widerface(
                     if ioa > max_ioa_:
                         founded_box = b
                         max_ioa_ = ioa
-                assert founded_box is not None, f"Cant find box for landmark! {dataset_name}, frameid={frame_id}"
+                assert (
+                    founded_box is not None
+                ), f"Cant find box for landmark! {dataset_name}, frameid={frame_id}"
                 founded_box["landmarks"] = lmk["points"]
             img_path = input_imgpath / frame_name
             frame_name = dataset_name + "_" + Path(frame_name).name
-            
+
             out_img_path = cur_outpath / Path(frame_name).name
             out_txt_path = cur_outpath / (Path(frame_name).stem + ".txt")
             final_boxes = []
@@ -183,11 +193,13 @@ def datumaro_to_widerface(
             f = open(out_txt_path, "w")
             for box in final_boxes:
                 box_ltwh = np.array(box["bbox"])
-                box_ltrb = box_ltwh
+                box_ltrb = box_ltwh.copy()
                 box_ltrb[2:] += box_ltwh[:2]
-                normed_ltrb = box_ltrb.copy()
-                normed_ltrb[0::2] /= hw[1]
-                normed_ltrb[1::2] /= hw[0]
+                normed_ltwh = box_ltwh.copy()
+                normed_ltwh[0] += normed_ltwh[2] // 2
+                normed_ltwh[1] += normed_ltwh[3] // 2
+                normed_ltwh[0::2] /= hw[1]
+                normed_ltwh[1::2] /= hw[0]
                 label = 0
                 if "has_mask" in box["attributes"]:
                     label = 1 if box["attributes"]["has_mask"] else 0
@@ -200,9 +212,8 @@ def datumaro_to_widerface(
                 else:
                     lmks = [-1] * 10
 
-                bbox = normed_ltrb.tolist()
+                bbox = normed_ltwh.tolist()
                 line = [label, *bbox, *lmks]
                 line = list(map(str, line))
                 line = " ".join(line)
                 f.write(f"{line}\n")
-   
