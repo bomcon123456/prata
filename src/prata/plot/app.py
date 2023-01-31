@@ -41,6 +41,7 @@ def pie_dist(
     )
     ax1.axis("equal")  # Equal aspect ratio ensures that pie is drawn as a circle.
     ax1.set_title(f"Total images: {sum(d.values())}")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(output_path.as_posix())
 
 @app.command()

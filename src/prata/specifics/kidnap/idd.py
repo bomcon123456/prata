@@ -121,6 +121,9 @@ def cut_rider_from_idd_xml(
         if "big_crop" not in v:
             continue
         l, t, r, b = v["big_crop"]
+        w,h = r-l, b-t
+        if w < 60 or h < 60:
+            continue
         l = max(l - pad_size, 0)
         t = max(t - pad_size, 0)
         r = min(r + pad_size, img.shape[1])

@@ -63,6 +63,19 @@ def move_file_keep_parent_name(
         assert not new_path.exists(), f"{new_path} existed."
         shutil.copy2(file, new_path)
 
+@app.command()
+def move_all_file_to_folder(
+    input_path: Path = typer.Argument(..., help="input path"),
+    output_path: Path = typer.Argument(..., help="Output path"),
+    check_exists: bool = typer.Option(False, help="chekc if exists")
+):
+    files = list(input_path.rglob("*"))
+    for file in tqdm(files):
+        op = output_path / file.name
+        if check_exists and op.exists():
+            raise Exception(f"{file} is existed")
+        shutil.move(file, op)
+
 
 if __name__ == "__main__":
     app()

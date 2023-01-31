@@ -1,4 +1,5 @@
 import os
+import cv2
 import numpy as np
 import shutil
 import subprocess
@@ -122,6 +123,28 @@ def video2interval(
             # print(" ".join(cmd))
             # exit()
             subprocess.call(cmd)
+
+@app.command()
+def filter_img_by_size(
+    input_path: Path = typer.Argument(..., help="input path"),
+    output_path: Path = typer.Argument(..., help="Output path"),
+    min_width: int = typer.Option(200, help="min_width"),
+    min_height: int = typer.Option(200, help="min_height"),
+):
+    exts = set([".jpeg", ".jpg", ".png"])
+    files = list(input_path.rglob("*"))
+    for file in tqdm(files):
+        if file.suffix.lower() not in exts:
+            continue
+        img = cv2.imread(file.as_posix())
+        h,w,c = img.shape
+        if h < min_height or w < min_width:
+            continue
+        p = file.relative_to(input_path)
+        op = output_path / p
+        op.parent.mkdir(exist_ok=True, parents=True)
+        shutil.copy2(file, op)
+
 
 
 if __name__ == "__main__":

@@ -24,14 +24,15 @@ def toh264(
     if input_path.is_file():
         inputs.append(input_path)
     elif input_path.is_dir():
-        inputs = input_path.glob("*.[ma][pv][4i]")
+        inputs = input_path.rglob("*.[ma][pv][4i]")
         inputs = list(map(lambda x: x, inputs))
     pbar = tqdm(natsorted(inputs))
     output_path.mkdir(exist_ok=True, parents=True)
-    for input_path in pbar:
-        assert input_path.exists(), f"{input_path} not exists!"
-        pbar.set_description(f"{input_path.stem}")
-        cur_outpath = output_path / input_path.name
+    for vid_path in pbar:
+        assert vid_path.exists(), f"{input_path} not exists!"
+        pbar.set_description(f"{vid_path.stem}")
+        cur_outpath = output_path / vid_path.relative_to(input_path)
+        cur_outpath.parent.mkdir(parents=True, exist_ok=True)
 
         cmd = [
             "/usr/bin/ffmpeg",
@@ -39,7 +40,7 @@ def toh264(
             "-loglevel",
             "error",
             "-i",
-            input_path.resolve().as_posix(),
+            vid_path.resolve().as_posix(),
             "-tune",
             "fastdecode",
             "-tune",

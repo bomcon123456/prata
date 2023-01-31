@@ -237,8 +237,15 @@ def get_annotations_in_crop(
             intersect_ymin - y_min + intersect_height,
         )
 
-        output_annotation[5::2] -= x_min
-        output_annotation[6::2] -= y_min
+        for i in range(5, len(output_annotation), 2):
+            if output_annotation[i] >= -1.:
+                output_annotation[i] = max(0, output_annotation[i] - x_min)
+        for i in range(6, len(output_annotation), 2):
+            if output_annotation[i] >= -1.:
+                output_annotation[i] = max(0, output_annotation[i] - y_min)
+        # output_annotation[5::2] = np.min(0, output_annotation[5::2] - x_min)
+        # output_annotation[6::2] = np.min(0, output_annotation[6::2] - y_min)
+        # output_annotation[6::2] -= y_min
         res.append(output_annotation)
     return res
 
@@ -309,6 +316,8 @@ def cropify_onefolder(input_path: Path, output_path: Path, debug: bool):
                 an[1:5] = tmp
                 an[1::2] /= crop.shape[1]
                 an[2::2] /= crop.shape[0]
+                for j in range(1, len(an)):
+                    an[j] = max(-1.0, min(1.0, an[j]))
                 s = [int(an[0]), *an[1:]]
                 s = list(map(str,s))
                 s = " ".join(s) + "\n"
@@ -319,3 +328,40 @@ def cropify_onefolder(input_path: Path, output_path: Path, debug: bool):
             #     p.mkdir(exist_ok=True, parents=True)
 
             # TODO:
+
+def copy_txt(img_basepath: Path, txt_basepath: Path):
+    img_paths = img_basepath.rglob("*")
+    exts = [".jpg", ".jpeg", ".png"]
+    for img_path in img_paths:
+        ext = img_path.suffix.lower()
+        if ext not in exts:
+            continue
+        txt_path = txt_basepath / (img_path.stem + ".txt")
+        assert txt_path.exists()
+        shutil.copy(txt_path, img_path.parent / txt_path.name)
+        
+def widerface_to_yolo_(txt_basepath: Path):
+    txt_paths = list(txt_basepath.rglob("*.txt"))
+    for txt_path in tqdm(txt_paths):
+        with open(txt_path, "r") as f:
+            lines = f.readlines()
+
+        lines = list(map(lambda x: x.strip().split(), lines))
+        for i in range(len(lines)):
+            is_vis = []
+            lines[i] = list(map(float, lines[i]))
+            
+            is_vis.append(lines[i].pop(7))
+            is_vis.append(lines[i].pop(9))
+            is_vis.append(lines[i].pop(11))
+            is_vis.append(lines[i].pop(13))
+            is_vis.append(lines[i].pop(15))
+            for j in range(0,5):
+                if int(is_vis[j]) == 0:
+                    lines[i][5+2*j] = -1
+                    lines[i][5+2*j+1] = -1
+            lines[i] = list(map(str, lines[i]))
+        with open(txt_path, "w") as f:
+            for line in lines:
+                f.write(f"{' '.join(line)}\n")
+ 
