@@ -1,5 +1,8 @@
 import typer
 from pathlib import Path
+from tqdm.rich import tqdm
+import cv2
+import shutil
 
 from . import converter, api
 
@@ -34,6 +37,21 @@ def push_task(
     task_name_with_parent: bool = typer.Option(False, help="Task name will be concatenation of parent folder + filename")
 ):
     api.push_task(project_id, datapath, annotation_path, annotation_format, subset_name, task_name_with_parent)
+
+@app.command()
+def remove_black_frames(
+    datapath: Path = typer.Argument(..., help="datapath", exists=True),
+    ncols: int = typer.Option(100, help="num cols to count"),
+    threshold: float = typer.Option(16.0, help="num thresh")
+):
+    images = list(datapath.rglob("*.[jp][pn][g]")) + list(datapath.rglob("*.jpeg"))
+    n_remove = 0
+    for image_path in tqdm(images):
+        img = cv2.imread(image_path.as_posix())
+        if ((img[:ncols].flatten() < threshold).sum() > img.shape[1]*ncols) and ((img[-ncols:].flatten() < threshold).sum() > img.shape[1]*ncols):
+            image_path.unlink()
+            n_remove += 1
+    print(f"Total black frames: {n_remove}")
 
 if __name__ == "__main__":
     app()
