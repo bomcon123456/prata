@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List
 import json
+from copy import copy
 
 from decord import VideoReader
 from decord import cpu
@@ -28,12 +29,20 @@ def crop_from_activities(
         if len(activities) > 1 and cached:
             pass
     elif engine == "torch":
-        cap = torchvision.io.VideoReader(video_path, "video", num_threads=2)
-        fps = cap.get_metadata()["fps"]
+        cap = torchvision.io.VideoReader(video_path.as_posix(), "video", num_threads=1)
+        fps = cap.get_metadata()["video"]["fps"][0]
         fnc = crop_from_activity_torch
         if len(activities) > 1 and cached:
             pass
-    use_cached = len(activities) > 1 and cached
+    use_cached = len(activities) > 1 and cached and engine == "opencv"
+    if use_cached:
+        frames = []
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frames.append(frame)
+        frames = np.array(frames)
 
     for activity in activities:
         activity: Activity
@@ -47,9 +56,9 @@ def crop_from_activities(
         outvideo_path.parent.mkdir(parents=True, exist_ok=True)
         if use_cached:
             assert frames is not None
-            crop_from_activity_cached(frames, fps, activity, output_path)
+            crop_from_activity_cached(frames, fps, activity, outvideo_path)
         else:
-            fnc(cap, activity, output_path)
+            fnc(cap, activity, outvideo_path)
         activity_dict = activity.dict()
         activity_dict["bounded_tlbr"] = activity.get_bounded_tlbr().tolist()
         with open(outjson_path, "w") as f:
@@ -58,6 +67,34 @@ def crop_from_activities(
 
 def crop_from_activity_torch(cap, activity: Activity, output_path: Path = None):
     cap: torchvision.io.VideoReader
+    fps = cap.get_metadata()["video"]["fps"][0]
+    timespan = activity.timespan
+    timestart_sec = timespan[0] / fps
+    timespan_frames = timespan[1] - timespan[0] + 1
+
+    t, l, b, r = activity.get_bounded_tlbr().astype(np.int32)
+    cap.seek(0)
+    frame_ = next(cap)["data"]
+    t = max(0, t)
+    l = max(0, l)
+    b = min(b, frame_.shape[1])
+    r = min(r, frame_.shape[2])
+
+    out = cv2.VideoWriter(
+        output_path.as_posix(),
+        cv2.VideoWriter_fourcc(*"XVID"),
+        fps,
+        (r-l, b-t),
+    )
+
+    cap.seek(timestart_sec)
+    for _ in range(timespan_frames):
+        frame = next(cap)
+        f = frame["data"].permute(1,2,0).numpy()
+        cropped = f[t:b, l:r, :].astype("uint8")
+        cropped = cv2.cvtColor(cropped, cv2.COLOR_RGB2BGR)
+        out.write(cropped)
+    out.release()
 
 
 def crop_from_activity_opencv(cap, activity: Activity, output_path: Path = None):
@@ -87,7 +124,6 @@ def crop_from_activity_opencv(cap, activity: Activity, output_path: Path = None)
         for img in cropped:
             out.write(img)
         out.release()
-    # cv2.destroyAllWindows()
 
     return cropped
 
