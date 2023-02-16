@@ -53,7 +53,9 @@ class LocTimestamp(BaseModel):
         ts_sec = getattr(d, "ts1", None)
         l, t, r, b = np.array(list(map(float, d["g0"].split(" "))))
 
-        return LocTimestamp(timestamp=ts, timestamp_sec=ts_sec, tlbr=np.array((t, l, b, r)))
+        return LocTimestamp(
+            timestamp=ts, timestamp_sec=ts_sec, tlbr=np.array((t, l, b, r))
+        )
 
 
 class Actor(BaseModel):
@@ -101,6 +103,8 @@ def parse_activities_path(yaml_path: Path):
             len(list(activity_name.keys())) == 1
         ), f"Activities keys has more than 1: {activity_name.keys()}"
         activity_name = list(activity_name.keys())[0]
+        if (activity_name == "empty_37") or obj.get("actors", None) is None:
+            continue
         id = obj["id2"]
         timespan = obj["timespan"]
         assert len(timespan) == 1, f"{timespan}: has at least 2 samples"
@@ -169,6 +173,8 @@ def get_all_yaml_from_one(yaml_path: Path):
 def parse_yaml(yaml_path: Path):
     activities_path, geom_path, types_path = get_all_yaml_from_one(yaml_path)
     activities = parse_activities_path(activities_path)
+    if len(activities) == 0:
+        return []
 
     actors_ = {}
     for activity in activities:
