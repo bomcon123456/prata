@@ -82,7 +82,7 @@ def crop_for_one_video(video_path: Path, annotation_path: Path, output_path:Path
         neg_cap.release()
 
 
-def create_rider_from_ann(annotation_path: Path, output_path: Path):
+def create_rider_from_ann(annotation_path: Path, output_path: Path, get_bikes_only=False):
     image_path = annotation_path.parent.parent / "images"
     with open(annotation_path, "r") as f:
         obj = json.load(f)
@@ -96,6 +96,9 @@ def create_rider_from_ann(annotation_path: Path, output_path: Path):
                 ppl.append(ann)
             elif ann["category_id"] == motorbike_id:
                 bikes.append(ann)
+        if len(ppl) == 0 and len(bikes) != 0 and get_bikes_only:
+            # TODO: save crop of bikes only
+            pass
         if len(ppl) == 0 or len(bikes) == 0:
             continue
 
@@ -117,39 +120,46 @@ def create_rider_from_ann(annotation_path: Path, output_path: Path):
             img = cv2.imread(frame_path.as_posix())
             # linked_idx, max_iou = np.argmax(ious_[0])
             counter = 0
-            for j, iou_ in enumerate(ious_[0]):
-                if iou_ > 0.3:
-                    susp_ltwh = ppl_ltwh[j]
-                    susp_ltrb = ppl_ltrb[j]
-                    if not is_in_box(bks_centers[i], susp_ltrb):
-                        continue
-                    if susp_ltrb[3] > ltrb[3] + 33:
-                        continue
-                    dist = np.linalg.norm(ppl_centers[j] - bks_centers[i])
-                    if dist > 49:
-                        continue
-                    counter += 1
-                    x1,y1,x2,y2 = susp_ltrb
-                    x1_,y1_,x2_,y2_ = ltrb
-                    l = min(x1,x1_)
-                    t = min(y1,y1_)
-                    r = max(x2,x2_)
-                    b = max(y2,y2_)
+            cropped = None
+            if (ious_[0] <= 0.05).all() and get_bikes_only:
+                l,t,r,b = ltrb
+                l = max(l-30,0)
+                t = max(t-30,0)
+                r = min(r+30, 1920)
+                b = min(b+30,1080)
 
-                    l = max(l-30,0)
-                    t = max(t-30,0)
-                    r = min(r+30, 1920)
-                    b = min(b+30,1080)
-                    cropped = img[t:b,l:r]
+                cropped = img[t:b,l:r]
+            else:
+                for j, iou_ in enumerate(ious_[0]):
+                    if iou_ > 0.3:
+                        susp_ltwh = ppl_ltwh[j]
+                        susp_ltrb = ppl_ltrb[j]
+                        if not is_in_box(bks_centers[i], susp_ltrb):
+                            continue
+                        if susp_ltrb[3] > ltrb[3] + 33:
+                            continue
+                        dist = np.linalg.norm(ppl_centers[j] - bks_centers[i])
+                        if dist > 49:
+                            continue
+                        counter += 1
+                        x1,y1,x2,y2 = susp_ltrb
+                        x1_,y1_,x2_,y2_ = ltrb
+                        l = min(x1,x1_)
+                        t = min(y1,y1_)
+                        r = max(x2,x2_)
+                        b = max(y2,y2_)
+
+                        l = max(l-30,0)
+                        t = max(t-30,0)
+                        r = min(r+30, 1920)
+                        b = min(b+30,1080)
+                        cropped = img[t:b,l:r]
                     # cv2.rectangle(img, (susp_ltrb[:2]), (susp_ltrb[2:]), (0,0,255),2,2)
                     # font = cv2.FONT_HERSHEY_COMPLEX
                     # cv2.putText(img,f'{iou_:.3f}_{dist:.3f}',susp_ltrb[:2],font,2,(255,0,255),3)  #text,coordinate,font,size of text,color,thickness of font
 
                     # cv2.rectangle(img, (ltrb[:2]), (ltrb[2:]), (255,0,0),2,2)
                     # cv2.imwrite((output_path/f"{i}_{j}_{iou_:.3f}_{dist:.3f}_{dist_l1:.3f}.jpg").as_posix(), img)
-            if counter > 0:
+            if cropped is not None and (counter > 0 or get_bikes_only):
                 (output_path/f"{counter}").mkdir(exist_ok=True, parents=True)
                 cv2.imwrite((output_path/f"{counter}/{bike['image_id']}_{i}.jpg").as_posix(), cropped)
-                
-
-    

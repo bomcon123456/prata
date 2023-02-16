@@ -13,3 +13,6 @@ decord
 opencv-python
 matplotlib
 xmltodict
+pandas
+seaborn
+fiftyone

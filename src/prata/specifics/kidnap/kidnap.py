@@ -78,6 +78,7 @@ def crop_static_videos(
 def create_rider_dataset(
     input_path: Path = typer.Argument(..., help="Base input path"),
     output_path: Path = typer.Option("./rider_dataset", help="output path"),
+    get_bikes_only: bool = typer.Option(True, help="get bikes no rider"),
 ):
 
     annotation_paths = list(input_path.rglob("instances_default.json"))
@@ -88,7 +89,7 @@ def create_rider_dataset(
         pbar.set_description(dataset_name)
         p = output_path / dataset_name
         p.mkdir(exist_ok=True, parents=True)
-        create_rider_from_ann(annotation_path, p)
+        create_rider_from_ann(annotation_path, p, get_bikes_only)
 
 
 @app.command()
