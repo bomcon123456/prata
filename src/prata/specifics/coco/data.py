@@ -64,5 +64,36 @@ def filter(
     with open(output_path, "w") as f:
         json.dump(result, f, indent=2)
 
+
+@app.command()
+def prefix_image_path(
+    json_path: Path = typer.Argument(
+        ..., help="json path", exists=True
+    ),
+    output_path: Path = typer.Argument(..., help="output path"),
+    prefix: str = typer.Argument(..., help="prefix to the current image path"),
+):
+    if json_path.is_dir():
+        json_paths = json_path.glob("*.json")
+        if output_path.is_file():
+            output_path = output_path.parent
+    else:
+        json_paths = [json_path]
+    if output_path.is_dir():
+        output_path.mkdir(exist_ok=True, parents=True)
+    for json_path in json_paths:
+        with open(json_path, "r") as f:
+            d = json.load(f)
+        for i in tqdm(range(len(d["images"]))):
+            img_obj = d["images"][i]
+            name = img_obj["file_name"]
+            d["images"][i]["file_name"] = f"{prefix}{name}"
+        if output_path.is_dir():
+            cur_out = output_path / json_path.name
+        else:
+            cur_out = output_path
+        with open(cur_out, "w") as f:
+            json.dump(d, f, indent=2)
+
 if __name__ == "__main__":
     app()
