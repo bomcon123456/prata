@@ -1,4 +1,3 @@
-from genericpath import exists
 import os
 import shutil
 import zipfile

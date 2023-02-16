@@ -6,11 +6,45 @@ import sys
 from enum import Enum
 from pathlib import Path
 from natsort import natsorted
+import pandas as pd
+from loguru import logger
 
 import typer
 from tqdm.rich import tqdm
 
 app = typer.Typer()
+
+
+@app.command()
+def cut(
+    csv_path: Path = typer.Argument(..., help="csv path", exists=True, file_okay=True),
+    video_path: Path = typer.Argument(
+        ..., help="video base path", exists=True, dir_okay=True
+    ),
+    output_path: Path = typer.Argument(..., help="output base path"),
+):
+    if output_path.exists():
+        inp = input("Existed, override? (y/n)")
+        assert len(inp) == 1
+        inp = inp.lower()
+        if inp == "y":
+            shutil.rmtree(output_path)
+    output_path.mkdir(exist_ok=True, parents=True)
+    # Read starting and ending time
+    df = pd.read_csv(csv_path)
+    for id, row in tqdm(df.iterrows(), total=len(df)):
+        in_video = "{}".format(row["name"])
+        out_video = "cut_{}.mp4".format(id)
+        in_path = video_path / in_video
+        assert in_path.exists()
+        start = row.start
+        end = row.end
+        category = row.category
+        out_path = output_path / category / out_video
+        out_path.parent.mkdir(exist_ok=True, parents=True)
+        cmd = f"ffmpeg -i '{in_path}' -ss {start} -to {end} -c copy {out_path}"
+        logger.info(cmd)
+        _ = subprocess.check_output(cmd, shell=True)
 
 
 @app.command()
@@ -80,7 +114,7 @@ def toh264_v2(
         assert input_path.exists(), f"{input_path} not exists!"
         pbar.set_description(f"{input_path.stem}")
         cur_outpath = output_path / input_path.name
-        tmp_path = tmp_folder / "tmp.h264" 
+        tmp_path = tmp_folder / "tmp.h264"
         if tmp_path.exists():
             os.remove(tmp_path)
 
@@ -96,7 +130,7 @@ def toh264_v2(
             "copy",
             "-f",
             "h264",
-            tmp_path.resolve().as_posix()
+            tmp_path.resolve().as_posix(),
         ]
         # print(" ".join(cmd))
         subprocess.call(cmd)
@@ -112,7 +146,7 @@ def toh264_v2(
             tmp_path.resolve().as_posix(),
             "-c",
             "copy",
-            cur_outpath.resolve().as_posix()
+            cur_outpath.resolve().as_posix(),
         ]
         subprocess.call(cmd)
     shutil.rmtree(tmp_folder)

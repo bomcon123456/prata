@@ -1,3 +1,4 @@
+from genericpath import exists
 import os
 import numpy as np
 import shutil
@@ -6,6 +7,8 @@ import sys
 from enum import Enum
 from pathlib import Path
 from natsort import natsorted
+import pandas as pd
+from loguru import logger
 
 import typer
 from tqdm.rich import tqdm
@@ -53,7 +56,9 @@ def video2frames(
 def video2interval(
     input_path: Path = typer.Argument(..., help="input path", exists=True),
     output_path: Path = typer.Option("./output", help="Output path"),
-    interval: float = typer.Option(15, help="Minute interval (extract every X minutes)"),
+    interval: float = typer.Option(
+        15, help="Minute interval (extract every X minutes)"
+    ),
     frames: int = typer.Option(
         60, help="Number of frames per interval (with the new fps)"
     ),
