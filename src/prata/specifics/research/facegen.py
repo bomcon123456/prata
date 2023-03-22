@@ -195,8 +195,7 @@ def vfhq_posemerge(
         ..., help="poseanh path", exists=True, dir_okay=True
     ),
     gt_path: Path = typer.Argument(..., help="gt path", exists=True, dir_okay=True),
-    output_path: Path = typer.Argument(..., help="output path", exists=True, dir_okay=True),
-    iou_thresh: float = typer.Option(0.8, help="iou thresh"),
+    output_path: Path = typer.Argument(..., help="output path"),
 ):
     synergytxts = synergy_path.glob("*.txt")
     poseanhtxts = poseanh_path.glob("*.txt")
@@ -210,6 +209,7 @@ def vfhq_posemerge(
     print(f"Total clips unmatched comparing to GT: {len(missingnames)}")
 
     missing_outpath = output_path / "missing.txt"
+    output_path.mkdir(parents=True, exist_ok=True)
     with open(missing_outpath.as_posix(), "w") as f:
         for missingname in missingnames:
             f.write(missingname + "\n")
