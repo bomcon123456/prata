@@ -158,10 +158,10 @@ def parseline_synergy(line):
         y1=y1,
         x2=x2,
         y2=y2,
-        synergy_yaw=pose[0],
-        synergy_pitch=pose[1],
-        synergy_roll=pose[2],
-        lmks68pts=lmks68pts,
+        synergy_yaw=pose[0] if pose else None,
+        synergy_pitch=pose[1] if pose else None,
+        synergy_roll=pose[2] if pose else None,
+        lmks68pts=lmks68pts if lmks68pts else None,
     )
     return d
 
@@ -185,9 +185,9 @@ def parseline_poseanh(line):
         y1=y1,
         x2=x2,
         y2=y2,
-        poseanh_yaw=pose[1],
-        poseanh_pitch=pose[0],
-        poseanh_roll=pose[2],
+        poseanh_yaw=pose[1] if pose else None,
+        poseanh_pitch=pose[0] if pose else None,
+        poseanh_roll=pose[2] if pose else None,
     )
     return d
 
@@ -195,7 +195,7 @@ def parseline_iqa(line):
     numbers = line.split()
     numbers[2:] = list(map(lambda x: float(x), numbers[2:]))
     frameid, idx, x1, y1, x2, y2 = numbers[:6]
-    iqa = numbers[-1]
+    iqa = numbers[-1] if len(numbers) > 6 else None
     d = dict(
         frameid=frameid,
         idx=idx,

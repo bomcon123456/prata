@@ -6,6 +6,7 @@ from collections import defaultdict
 from enum import Enum, auto
 from pathlib import Path
 from typing import List, Optional
+import concurrent.futures
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -249,6 +250,76 @@ def vfhq_posemerge(
                 "lmks68pts",
             ],
         )
+
+@app.command()
+def vfhq_posemerge_multithread(
+    synergy_path: Path = typer.Argument(
+        ..., help="synergy path", exists=True, dir_okay=True
+    ),
+    poseanh_path: Path = typer.Argument(
+        ..., help="poseanh path", exists=True, dir_okay=True
+    ),
+    iqa_path: Path = typer.Argument(
+        ..., help="iqa path", exists=True, dir_okay=True
+    ),
+    gt_path: Path = typer.Argument(..., help="gt path", exists=True, dir_okay=True),
+    output_path: Path = typer.Argument(..., help="output path"),
+):
+    synergytxts = synergy_path.glob("*.txt")
+    poseanhtxts = poseanh_path.glob("*.txt")
+    iqatxts = iqa_path.glob("*.txt")
+    gttxts = gt_path.glob("*.txt")
+
+    synergynames = set([x.stem for x in synergytxts])
+    poseanhnames = set([x.stem for x in poseanhtxts])
+    iqanames = set([x.stem for x in iqatxts])
+    gtnames = set([x.stem for x in gttxts])
+
+    overlapnames = synergynames & poseanhnames & gtnames & iqanames
+    missingnames = gtnames - overlapnames
+    print(f"Total clips matched: {len(overlapnames)}")
+    print(f"Total clips unmatched comparing to GT: {len(missingnames)}")
+
+    missing_outpath = output_path / "missing.txt"
+    output_path.mkdir(parents=True, exist_ok=True)
+    with open(missing_outpath.as_posix(), "w") as f:
+        for missingname in missingnames:
+            f.write(missingname + "\n")
+
+     
+    def func(overlapname):
+        synergytxtpath = synergy_path / (overlapname + ".txt")
+        poseanhtxtpath = poseanh_path / (overlapname + ".txt")
+        gttxtpath = gt_path / (overlapname + ".txt")
+        iqatxtpath = iqa_path / (overlapname + ".txt")
+        outputdfpath = output_path / (overlapname + ".csv")
+
+        df = mergetxt(gttxtpath, synergytxtpath, poseanhtxtpath, iqatxtpath)
+        df.to_csv(
+            outputdfpath,
+            index=False,
+            columns=[
+                "frameid",
+                "idx",
+                "x1",
+                "y1",
+                "x2",
+                "y2",
+                "synergy_yaw",
+                "synergy_pitch",
+                "synergy_roll",
+                "poseanh_yaw",
+                "poseanh_pitch",
+                "poseanh_roll",
+                "lmks5pts",
+                "lmks68pts",
+            ],
+        )
+
+    pool = concurrent.futures.ThreadPoolExecutor(max_workers=4)
+    results = []
+    for result in tqdm(pool.map(func, natsorted(overlapnames)), total=len(overlapnames)):
+        results.append(result)
 
 if __name__ == "__main__":
     app()
