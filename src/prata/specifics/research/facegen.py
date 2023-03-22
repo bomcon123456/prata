@@ -194,16 +194,23 @@ def vfhq_posemerge(
     poseanh_path: Path = typer.Argument(
         ..., help="poseanh path", exists=True, dir_okay=True
     ),
+    iqa_path: Path = typer.Argument(
+        ..., help="iqa path", exists=True, dir_okay=True
+    ),
     gt_path: Path = typer.Argument(..., help="gt path", exists=True, dir_okay=True),
     output_path: Path = typer.Argument(..., help="output path"),
 ):
     synergytxts = synergy_path.glob("*.txt")
     poseanhtxts = poseanh_path.glob("*.txt")
+    iqatxts = iqa_path.glob("*.txt")
     gttxts = gt_path.glob("*.txt")
+
     synergynames = set([x.stem for x in synergytxts])
     poseanhnames = set([x.stem for x in poseanhtxts])
+    iqanames = set([x.stem for x in iqatxts])
     gtnames = set([x.stem for x in gttxts])
-    overlapnames = synergynames & poseanhnames & gtnames
+
+    overlapnames = synergynames & poseanhnames & gtnames & iqanames
     missingnames = gtnames - overlapnames
     print(f"Total clips matched: {len(overlapnames)}")
     print(f"Total clips unmatched comparing to GT: {len(missingnames)}")
@@ -218,11 +225,30 @@ def vfhq_posemerge(
         synergytxtpath = synergy_path / (overlapname + ".txt")
         poseanhtxtpath = poseanh_path / (overlapname + ".txt")
         gttxtpath = gt_path / (overlapname + ".txt")
-        vfhq = read_csv_from_txt(gttxtpath, datatype="gt")
-        poseanh = read_csv_from_txt(poseanhtxtpath, datatype="poseanh")
-        synergy = read_csv_from_txt(synergytxtpath, datatype="synergy")
-        df = merge3posedf(vfhq, poseanh, synergy)
-        df.to_csv(output_path / (overlapname + ".csv"), index=False)
+        iqatxtpath = iqa_path / (overlapname + ".txt")
+
+        df = mergetxt(gttxtpath, synergytxtpath, poseanhtxtpath, iqatxtpath)
+        outputdfpath = output_path / (overlapname + ".csv")
+        df.to_csv(
+            outputdfpath,
+            index=False,
+            columns=[
+                "frameid",
+                "idx",
+                "x1",
+                "y1",
+                "x2",
+                "y2",
+                "synergy_yaw",
+                "synergy_pitch",
+                "synergy_roll",
+                "poseanh_yaw",
+                "poseanh_pitch",
+                "poseanh_roll",
+                "lmks5pts",
+                "lmks68pts",
+            ],
+        )
 
 if __name__ == "__main__":
     app()
