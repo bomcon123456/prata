@@ -264,6 +264,7 @@ def vfhq_posemerge_multithread(
     ),
     gt_path: Path = typer.Argument(..., help="gt path", exists=True, dir_okay=True),
     output_path: Path = typer.Argument(..., help="output path"),
+    workers: int = typer.Option(8, help="nworkers"),
 ):
     synergytxts = synergy_path.glob("*.txt")
     poseanhtxts = poseanh_path.glob("*.txt")
@@ -305,6 +306,7 @@ def vfhq_posemerge_multithread(
                 "y1",
                 "x2",
                 "y2",
+                "iqa",
                 "synergy_yaw",
                 "synergy_pitch",
                 "synergy_roll",
@@ -316,7 +318,7 @@ def vfhq_posemerge_multithread(
             ],
         )
 
-    pool = concurrent.futures.ThreadPoolExecutor(max_workers=4)
+    pool = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
     results = []
     for result in tqdm(pool.map(func, natsorted(overlapnames)), total=len(overlapnames)):
         results.append(result)
