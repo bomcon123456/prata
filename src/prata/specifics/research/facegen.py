@@ -218,9 +218,9 @@ def vfhq_posemerge(
         synergytxtpath = synergy_path / (overlapname + ".txt")
         poseanhtxtpath = poseanh_path / (overlapname + ".txt")
         gttxtpath = gt_path / (overlapname + ".txt")
-        vfhq = read_csv_from_txt(gttxtpath)
-        poseanh = read_csv_from_txt(poseanhtxtpath)
-        synergy = read_csv_from_txt(synergytxtpath)
+        vfhq = read_csv_from_txt(gttxtpath, datatype="gt")
+        poseanh = read_csv_from_txt(poseanhtxtpath, datatype="poseanh")
+        synergy = read_csv_from_txt(synergytxtpath, datatype="synergy")
         df = merge3posedf(vfhq, poseanh, synergy)
         df.to_csv(output_path / (overlapname + ".csv"), index=False)
 
