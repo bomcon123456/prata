@@ -328,9 +328,9 @@ def vfhq_combine_multiid_into_one(
     csv_basepath: Path = typer.Argument(..., help="csvpath", dir_okay=True, exists=True),
     out_basepath: Path = typer.Argument(..., help="outputpath")
 ):
-    csv_paths = csv_basepath.glob("*.csv")  
+    csv_paths = list(csv_basepath.glob("*.csv"))
     csv_names = [x.stem for x in csv_paths]
-    video_ids = [x.split("+")[1] for x in csv_names]
+    video_ids = list([x.split("+")[1] for x in csv_names])
     d = defaultdict(list)
     assert len(video_ids) == len(csv_paths)
     out_basepath.mkdir(parents=True, exist_ok=True)
