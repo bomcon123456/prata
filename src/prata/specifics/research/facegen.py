@@ -146,6 +146,7 @@ def vfhq_directmhp_merge(
     iou_thresh: float = typer.Option(0.8, help="iou thresh"),
 ):
     gt_csvs = gt_path.glob("*.csv")
+    out_path.mkdir(parents=True, exist_ok=True)
     for gt_csv in gt_csvs:
         videoid = gt_csv.stem
         df_ = pd.read_csv(gt_csv)
