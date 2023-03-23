@@ -9,6 +9,7 @@ from typing import List, Optional
 import concurrent.futures
 
 import matplotlib.pyplot as plt
+from rich import print
 import numpy as np
 import pandas as pd
 import typer
@@ -143,49 +144,50 @@ def vfhq_directmhp_merge(
     gt_path: Path = typer.Argument(..., help="gt path", exists=True, dir_okay=True),
     iou_thresh: float = typer.Option(0.8, help="iou thresh"),
 ):
-    video_ids = os.listdir(directmhp_path)
-    video_paths = list([directmhp_path / video_id for video_id in video_ids])
+    gt_csvs = gt_path.glob("*.csv")
+    for gt_csv in gt_csvs:
+        videoid = gt_csv.stem
+        df = pd.read_csv(gt_csv)
+        ref = {}
+        # group dataframe by column name "frameid", all other columns should be aggregated
+        df = df.groupby("frameid", as_index=False).agg(
+            {
+                "idx": lambda x: list(x),
+                "x1": lambda x: list(x),
+                "y1": lambda x: list(x),
+                "x2": lambda x: list(x),
+                "y2": lambda x: list(x),
+            }
+        )
+        records = df.to_dict('records') 
+        for row in records:
+            frameid = row["frameid"]
+            txtpath = directmhp_path / videoid / f"{frameid}.txt"
+            if not txtpath.exists():
+                continue
+            with open(txtpath, "r") as f:
+                lines = f.readlines()
 
-    gt_files = list(gt_path.rglob("*.txt"))
-    clipid_to_txts = defaultdict(list)
-    pbar = tqdm(gt_files)
-    pbar.set_description("Processing gt files")
-    for gt_file in pbar:
-        name = gt_file.stem
-        clip_id = name.split("+")[1]
-        clipid_to_txts[clip_id].append(gt_file)
-
-    # clipid_to_fidbox = dict()
-    for videopath in pbar:
-        pbar.set_description(f"Process video: {videopath.stem}")
-        clipid = videopath.stem
-        gttxts = clipid_to_txts[clipid]
-        frameid_to_bbox = defaultdict(list)
-        for gttxt in gttxts:
-            with open(gttxt, "r") as f:
-                lines = f.readlines()[7:-1]
+            lines = [line.strip().split() for line in lines]
+            yprltrbs = []
             for line in lines:
-                line = line.strip()
-                line = re.sub(r"\s+", " ", line)
-                facepred: FacePrediction = FacePrediction.parse_vfhq_annotation(
-                    line, clipid
-                )
-                frameid_to_bbox[facepred.frame_id].append(facepred)
-        predtxts = natsorted(videopath.rglob("*.txt"))
-        for predtxt in predtxts:
-            listbboxes = SimpleBoundingBox.parse_from_file(predtxt)
-            frameid = predtxt.stem
-            gtboxes: List[BoundingBox] = frameid_to_bbox[frameid]
-            targetious = [np.array(x.ltrb_gt) for x in gtboxes]
-            srcious = [np.array(x.ltrb) for x in listbboxes]
-            ious_ = ious(srcious, targetious)
-            max_ids, max_ious = np.argmax(ious_, axis=1), np.max(ious, axis=1)
-            numuniques = np.unique(max_ids).shape[0]
-            assert numuniques == max_ids.shape[0], f"There are multiple boxes overlap the same gtbbox {max_ids}, {max_ious}"
-            for max_id, max_iou in zip(max_ids, max_ious):
-                if max_iou > iou_thresh:
-                    listbboxes[max_id].gtbox = gtboxes[max_id]
+                yprltrbs.append(list(map(float, line)))
+            pred_yprltrbs = np.array(yprltrbs)
 
+            ids = row["idx"]
+            x1s = row["x1"]
+            y1s = row["y1"]
+            x2s = row["x2"]
+            y2s = row["y2"]
+            ltrbs = np.array(list(zip(x1s,y1s,x2s,y2s)))
+
+            ious_ = ious(ltrbs, pred_yprltrbs[:, 3:])
+            max_ids, max_ious = np.argmax(ious_, axis=-1), np.max(ious_, axis=-1)
+            for i, (max_idx, max_iou) in enumerate(zip(max_ids, max_ious)):
+                if max_iou > iou_thresh:
+                    ref[f"{frameid}_{i}"] = pred_yprltrbs[max_idx, :3]
+        print(ref)
+        exit(1)
 
 @app.command()
 def vfhq_posemerge(
@@ -195,9 +197,7 @@ def vfhq_posemerge(
     poseanh_path: Path = typer.Argument(
         ..., help="poseanh path", exists=True, dir_okay=True
     ),
-    iqa_path: Path = typer.Argument(
-        ..., help="iqa path", exists=True, dir_okay=True
-    ),
+    iqa_path: Path = typer.Argument(..., help="iqa path", exists=True, dir_okay=True),
     gt_path: Path = typer.Argument(..., help="gt path", exists=True, dir_okay=True),
     output_path: Path = typer.Argument(..., help="output path"),
 ):
@@ -221,7 +221,7 @@ def vfhq_posemerge(
     with open(missing_outpath.as_posix(), "w") as f:
         for missingname in missingnames:
             f.write(missingname + "\n")
-    
+
     for overlapname in tqdm(overlapnames):
         synergytxtpath = synergy_path / (overlapname + ".txt")
         poseanhtxtpath = poseanh_path / (overlapname + ".txt")
@@ -251,6 +251,7 @@ def vfhq_posemerge(
             ],
         )
 
+
 @app.command()
 def vfhq_posemerge_multithread(
     synergy_path: Path = typer.Argument(
@@ -259,9 +260,7 @@ def vfhq_posemerge_multithread(
     poseanh_path: Path = typer.Argument(
         ..., help="poseanh path", exists=True, dir_okay=True
     ),
-    iqa_path: Path = typer.Argument(
-        ..., help="iqa path", exists=True, dir_okay=True
-    ),
+    iqa_path: Path = typer.Argument(..., help="iqa path", exists=True, dir_okay=True),
     gt_path: Path = typer.Argument(..., help="gt path", exists=True, dir_okay=True),
     output_path: Path = typer.Argument(..., help="output path"),
     workers: int = typer.Option(8, help="nworkers"),
@@ -287,7 +286,6 @@ def vfhq_posemerge_multithread(
         for missingname in missingnames:
             f.write(missingname + "\n")
 
-     
     def func(overlapname):
         synergytxtpath = synergy_path / (overlapname + ".txt")
         poseanhtxtpath = poseanh_path / (overlapname + ".txt")
@@ -320,13 +318,18 @@ def vfhq_posemerge_multithread(
 
     pool = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
     results = []
-    for result in tqdm(pool.map(func, natsorted(overlapnames)), total=len(overlapnames)):
+    for result in tqdm(
+        pool.map(func, natsorted(overlapnames)), total=len(overlapnames)
+    ):
         results.append(result)
+
 
 @app.command()
 def vfhq_combine_multiid_into_one(
-    csv_basepath: Path = typer.Argument(..., help="csvpath", dir_okay=True, exists=True),
-    out_basepath: Path = typer.Argument(..., help="outputpath")
+    csv_basepath: Path = typer.Argument(
+        ..., help="csvpath", dir_okay=True, exists=True
+    ),
+    out_basepath: Path = typer.Argument(..., help="outputpath"),
 ):
     csv_paths = list(csv_basepath.glob("*.csv"))
     csv_names = [x.stem for x in csv_paths]
@@ -345,6 +348,7 @@ def vfhq_combine_multiid_into_one(
         result = pd.concat(dfs, ignore_index=True)
         outcsvpath = out_basepath / (video_id + ".csv")
         result.to_csv(outcsvpath.as_posix(), index=False)
+
 
 if __name__ == "__main__":
     app()
