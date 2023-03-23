@@ -323,5 +323,27 @@ def vfhq_posemerge_multithread(
     for result in tqdm(pool.map(func, natsorted(overlapnames)), total=len(overlapnames)):
         results.append(result)
 
+def vfhq_combine_multiid_into_one(
+    csv_basepath: Path = typer.Argument(..., help="csvpath", dir_okay=True, exists=True),
+    out_basepath: Path = typer.Argument(..., help="outputpath")
+):
+    csv_paths = csv_basepath.glob("*.csv")  
+    csv_names = [x.stem for x in csv_paths]
+    video_ids = [x.split("+")[1] for x in csv_names]
+    d = defaultdict(list)
+    assert len(video_ids) == len(csv_paths)
+    out_basepath.mkdir(parents=True, exist_ok=True)
+    for i, (video_id, csv_path) in enumerate(zip(video_ids, csv_paths)):
+        d[video_id].append(csv_path)
+
+    for video_id, csv_paths in tqdm(d.items(), total=len(d)):
+        dfs = []
+        for csv_path in csv_paths:
+            df = pd.read_csv(csv_path.as_posix())
+            dfs.append(df)
+        result = pd.concat(dfs, ignore_index=True)
+        outcsvpath = out_basepath / (video_id + ".csv")
+        result.to_csv(outcsvpath.as_posix(), index=False)
+
 if __name__ == "__main__":
     app()
