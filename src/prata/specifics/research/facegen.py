@@ -185,7 +185,7 @@ def vfhq_directmhp_merge(
                 x2s = row["x2"]
                 y2s = row["y2"]
                 ltrbs = np.array(list(zip(x1s, y1s, x2s, y2s)))
-                if ltrbs[:, 2] < ltrbs[:, 0]:
+                if (ltrbs[:, 2] < ltrbs[:, 0]).all():
                     ltrbs[:, 2] += ltrbs[:, 0]
                     ltrbs[:, 3] += ltrbs[:, 1]
 
