@@ -161,7 +161,7 @@ def vfhq_directmhp_merge(
                 "y2": lambda x: list(x),
             }
         )
-        records = df.to_dict('records') 
+        records = df.to_dict("records")
         for row in records:
             frameid = row["frameid"]
             txtpath = directmhp_path / videoid / f"{str(frameid).zfill(8)}.txt"
@@ -184,7 +184,7 @@ def vfhq_directmhp_merge(
                 y1s = row["y1"]
                 x2s = row["x2"]
                 y2s = row["y2"]
-                ltrbs = np.array(list(zip(x1s,y1s,x2s,y2s)))
+                ltrbs = np.array(list(zip(x1s, y1s, x2s, y2s)))
                 if ltrbs[:, 2] < ltrbs[:, 0]:
                     ltrbs[:, 2] += ltrbs[:, 0]
                     ltrbs[:, 3] += ltrbs[:, 1]
@@ -207,8 +207,31 @@ def vfhq_directmhp_merge(
                 df_.loc[idx, "mhp_pitch"] = ref[key][1]
                 df_.loc[idx, "mhp_roll"] = ref[key][2]
         outcsvpath = out_path / gt_csv.name
-        df_.to_csv(outcsvpath.as_posix(), index=False)
-        exit(1)
+        df_.to_csv(
+            outcsvpath.as_posix(),
+            index=False,
+            columns=[
+                "frameid",
+                "idx",
+                "x1",
+                "y1",
+                "x2",
+                "y2",
+                "iqa",
+                "synergy_yaw",
+                "synergy_pitch",
+                "synergy_roll",
+                "poseanh_yaw",
+                "poseanh_pitch",
+                "poseanh_roll",
+                "mhp_yaw",
+                "mhp_pitch",
+                "mhp_roll",
+                "lmks5pts",
+                "lmks68pts",
+            ],
+        )
+
 
 @app.command()
 def vfhq_posemerge(
