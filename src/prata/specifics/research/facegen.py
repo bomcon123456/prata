@@ -142,15 +142,16 @@ def vfhq_directmhp_merge(
         ..., help="directmhp path", exists=True, dir_okay=True
     ),
     gt_path: Path = typer.Argument(..., help="gt path", exists=True, dir_okay=True),
+    out_path: Path = typer.Argument(..., help="out path"),
     iou_thresh: float = typer.Option(0.8, help="iou thresh"),
 ):
     gt_csvs = gt_path.glob("*.csv")
     for gt_csv in gt_csvs:
         videoid = gt_csv.stem
-        df = pd.read_csv(gt_csv)
+        df_ = pd.read_csv(gt_csv)
         ref = {}
         # group dataframe by column name "frameid", all other columns should be aggregated
-        df = df.groupby("frameid", as_index=False).agg(
+        df = df_.groupby("frameid", as_index=False).agg(
             {
                 "idx": lambda x: list(x),
                 "x1": lambda x: list(x),
@@ -169,29 +170,42 @@ def vfhq_directmhp_merge(
                 lines = f.readlines()
             if len(lines) == 0:
                 continue
-
             lines = [line.strip().split() for line in lines]
             yprltrbs = []
             for line in lines:
                 yprltrbs.append(list(map(float, line)))
             pred_yprltrbs = np.array(yprltrbs)
+            if len(line) == 1:
+                ref[f"{frameid}_{ids[0]}"] = pred_yprltrbs[0, :3]
+            else:
+                ids = row["idx"]
+                x1s = row["x1"]
+                y1s = row["y1"]
+                x2s = row["x2"]
+                y2s = row["y2"]
+                ltrbs = np.array(list(zip(x1s,y1s,x2s,y2s)))
+                if ltrbs[:, 2] < ltrbs[:, 0]:
+                    ltrbs[:, 2] += ltrbs[:, 0]
+                    ltrbs[:, 3] += ltrbs[:, 1]
 
-            ids = row["idx"]
-            x1s = row["x1"]
-            y1s = row["y1"]
-            x2s = row["x2"]
-            y2s = row["y2"]
-            ltrbs = np.array(list(zip(x1s,y1s,x2s,y2s)))
-            if ltrbs[:, 2] < ltrbs[:, 0]:
-                ltrbs[:, 2] += ltrbs[:, 0]
-                ltrbs[:, 3] += ltrbs[:, 1]
-
-            ious_ = ious(ltrbs, pred_yprltrbs[:, 3:])
-            max_ids, max_ious = np.argmax(ious_, axis=-1), np.max(ious_, axis=-1)
-            for i, (max_idx, max_iou) in enumerate(zip(max_ids, max_ious)):
-                if max_iou > iou_thresh:
-                    ref[f"{frameid}_{i}"] = pred_yprltrbs[max_idx, :3]
-        print(ref)
+                ious_ = ious(ltrbs, pred_yprltrbs[:, 3:])
+                max_ids, max_ious = np.argmax(ious_, axis=-1), np.max(ious_, axis=-1)
+                for i, (max_idx, max_iou) in enumerate(zip(max_ids, max_ious)):
+                    if max_iou > iou_thresh:
+                        ref[f"{frameid}_{ids[i]}"] = pred_yprltrbs[max_idx, :3]
+        df_["mhp_yaw"] = np.nan
+        df_["mhp_pitch"] = np.nan
+        df_["mhp_roll"] = np.nan
+        for idx, row in df_.iterrows():
+            frameid = row["frameid"]
+            idx = row["idx"]
+            key = f"{frameid}_{idx}"
+            if key in ref:
+                df_.loc[idx, "mhp_yaw"] = ref[key][0]
+                df_.loc[idx, "mhp_pitch"] = ref[key][1]
+                df_.loc[idx, "mhp_roll"] = ref[key][2]
+        outcsvpath = out_path / gt_csv.name
+        df_.to_csv(outcsvpath.as_posix(), index=False)
         exit(1)
 
 @app.command()
