@@ -145,7 +145,7 @@ def vfhq_directmhp_merge(
     out_path: Path = typer.Argument(..., help="out path"),
     iou_thresh: float = typer.Option(0.8, help="iou thresh"),
 ):
-    gt_csvs = gt_path.glob("*.csv")
+    gt_csvs = natsorted(gt_path.glob("*.csv"))
     out_path.mkdir(parents=True, exist_ok=True)
     for gt_csv in gt_csvs:
         videoid = gt_csv.stem
@@ -197,10 +197,11 @@ def vfhq_directmhp_merge(
         df_["mhp_yaw"] = np.nan
         df_["mhp_pitch"] = np.nan
         df_["mhp_roll"] = np.nan
+
         for idx, row in df_.iterrows():
             frameid = row["frameid"]
-            idx = row["idx"]
-            key = f"{frameid}_{idx}"
+            fidx = row["idx"]
+            key = f"{frameid}_{fidx}"
             if key in ref:
                 df_.loc[idx, "mhp_yaw"] = ref[key][0]
                 df_.loc[idx, "mhp_pitch"] = ref[key][1]
