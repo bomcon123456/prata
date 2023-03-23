@@ -323,6 +323,7 @@ def vfhq_posemerge_multithread(
     for result in tqdm(pool.map(func, natsorted(overlapnames)), total=len(overlapnames)):
         results.append(result)
 
+@app.command()
 def vfhq_combine_multiid_into_one(
     csv_basepath: Path = typer.Argument(..., help="csvpath", dir_okay=True, exists=True),
     out_basepath: Path = typer.Argument(..., help="outputpath")
