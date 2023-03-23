@@ -147,7 +147,7 @@ def vfhq_directmhp_merge(
 ):
     gt_csvs = natsorted(gt_path.glob("*.csv"))
     out_path.mkdir(parents=True, exist_ok=True)
-    for gt_csv in gt_csvs:
+    for gt_csv in tqdm(gt_csvs):
         videoid = gt_csv.stem
         df_ = pd.read_csv(gt_csv)
         ref = {}
