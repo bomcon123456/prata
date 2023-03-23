@@ -162,11 +162,13 @@ def vfhq_directmhp_merge(
         records = df.to_dict('records') 
         for row in records:
             frameid = row["frameid"]
-            txtpath = directmhp_path / videoid / f"{frameid}.txt"
+            txtpath = directmhp_path / videoid / f"{str(frameid).zfill(8)}.txt"
             if not txtpath.exists():
                 continue
             with open(txtpath, "r") as f:
                 lines = f.readlines()
+            if len(lines) == 0:
+                continue
 
             lines = [line.strip().split() for line in lines]
             yprltrbs = []
@@ -180,6 +182,9 @@ def vfhq_directmhp_merge(
             x2s = row["x2"]
             y2s = row["y2"]
             ltrbs = np.array(list(zip(x1s,y1s,x2s,y2s)))
+            if ltrbs[:, 2] < ltrbs[:, 0]:
+                ltrbs[:, 2] += ltrbs[:, 0]
+                ltrbs[:, 3] += ltrbs[:, 1]
 
             ious_ = ious(ltrbs, pred_yprltrbs[:, 3:])
             max_ids, max_ious = np.argmax(ious_, axis=-1), np.max(ious_, axis=-1)
