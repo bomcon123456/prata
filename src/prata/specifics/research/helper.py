@@ -247,6 +247,8 @@ def mergetxt(gttxt, synergytxt, poseanhtxt, iqatxt):
     return df
 
 def bin_a_pose(yaw, pitch, roll):
+    if yaw is None or pitch is None or roll is None:
+        return None
     if abs(yaw) < 45 and abs(pitch) < 30:
         bin = "frontal"
     elif abs(yaw) > 90 and abs(pitch) > 90:

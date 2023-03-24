@@ -431,43 +431,52 @@ def binning(
             df.loc[row_idx, "poseanh_bin"] = poseanh_bin
             df.loc[row_idx, "mhp_bin"] = mhp_bin
 
-            if synergy_bin == poseanh_bin == mhp_bin:
-                hard_bin = synergy_bin
-            else:
+            candidates = []
+            for c in [synergy_bin, poseanh_bin, mhp_bin]:
+                if c is not None:
+                    candidates.append(c)
+            if len(candidates) == 0:
                 hard_bin = "confused"
+                soft_bin = "confused"
+            else:
+                is_allequal = all(element == candidates[0] for element in List)
+                if is_allequal:
+                    hard_bin = synergy_bin
+                else:
+                    hard_bin = "confused"
 
-            is_profile = all(
-                [
-                    x.split("_")[0] == "profile"
-                    for x in [synergy_bin, poseanh_bin, mhp_bin]
-                ]
-            )
-            is_frontal = all(
-                [x == "frontal" for x in [synergy_bin, poseanh_bin, mhp_bin]]
-            )
-            if is_frontal:
-                soft_bin = "frontal"
-            elif is_profile:
-                is_horizontal = all(
+                is_profile = all(
                     [
-                        x.split("_")[1] in ["left", "right", "extreme"]
-                        for x in [synergy_bin, poseanh_bin, mhp_bin]
+                        x.split("_")[0] == "profile"
+                        for x in candidates
                     ]
                 )
-                is_vertical = all(
-                    [
-                        x.split("_")[1] in ["up", "down", "extreme"]
-                        for x in [synergy_bin, poseanh_bin, mhp_bin]
-                    ]
+                is_frontal = all(
+                    [x == "frontal" for x in ]
                 )
-                if is_horizontal:
-                    soft_bin = "profile_horizontal"
-                elif is_vertical:
-                    soft_bin = "profile_vertical"
+                if is_frontal:
+                    soft_bin = "frontal"
+                elif is_profile:
+                    is_horizontal = all(
+                        [
+                            x.split("_")[1] in ["left", "right", "extreme"]
+                            for x in candidates
+                        ]
+                    )
+                    is_vertical = all(
+                        [
+                            x.split("_")[1] in ["up", "down", "extreme"]
+                            for x in candidates
+                        ]
+                    )
+                    if is_horizontal:
+                        soft_bin = "profile_horizontal"
+                    elif is_vertical:
+                        soft_bin = "profile_vertical"
+                    else:
+                        soft_bin = "confused"
                 else:
                     soft_bin = "confused"
-            else:
-                soft_bin = "confused"
 
             df.loc[row_idx, "hardbin"] = hard_bin
             df.loc[row_idx, "softbin"] = soft_bin
@@ -476,8 +485,8 @@ def binning(
         outputcsvpath = output_path / csv_path.name
         df.to_csv(outputcsvpath.as_posix(), index=False)
 
-    print("Hard: {hardcounter}")
-    print("Soft: {softcounter}")
+    print(f"Hard: {hardcounter}")
+    print(f"Soft: {softcounter}")
 
 if __name__ == "__main__":
     app()
