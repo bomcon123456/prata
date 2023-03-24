@@ -441,7 +441,7 @@ def binning(
             else:
                 is_allequal = all(element == candidates[0] for element in candidates)
                 if is_allequal:
-                    hard_bin = synergy_bin
+                    hard_bin = candidates[0]
                 else:
                     hard_bin = "confused"
 

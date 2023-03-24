@@ -1,4 +1,5 @@
 from pathlib import Path
+import math
 from rich import print
 import numpy as np
 import json
@@ -247,7 +248,7 @@ def mergetxt(gttxt, synergytxt, poseanhtxt, iqatxt):
     return df
 
 def bin_a_pose(yaw, pitch, roll):
-    if yaw is None or pitch is None or roll is None:
+    if math.isnan(yaw) or math.isnan(pitch) or math.isnan(roll):
         return None
     if abs(yaw) < 45 and abs(pitch) < 30:
         bin = "frontal"
