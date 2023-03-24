@@ -394,5 +394,86 @@ def vfhq_combine_multiid_into_one(
         result.to_csv(outcsvpath.as_posix(), index=False)
 
 
+@app.command()
+def binning(
+    csv_path: Path = typer.Argument(..., help="csvpath", exists=True, dir_okay=True),
+    output_path: Path = typer.Argument(..., help="csvpath", exists=True, dir_okay=True),
+):
+    csv_paths = list(natsorted(csv_path.glob("*.csv")))
+    pbar = tqdm(csv_paths)
+    hardcounter = defaultdict(int)
+    softcounter = defaultdict(int)
+    for csv_path in pbar:
+        pbardesc = f"{csv_path.stem}"
+        if "confused" in hardcounter:
+            pbardesc += f"|H{hardcounter['confused']}"
+        if "confused" in softcounter:
+            pbardesc += f"|E{softcounter['confused']}"
+        pbar.set_description(f"{csv_path.stem}")
+        df = pd.read_csv(csv_path.as_posix())
+        records = df.to_dict("records")
+        for row_idx, row in enumerate(tqdm(records)):
+            synergy_yaw = row["synergy_yaw"]
+            synergy_pitch = row["synergy_pitch"]
+            synergy_roll = row["synergy_roll"]
+            poseanh_yaw = row["poseanh_yaw"]
+            poseanh_pitch = row["poseanh_pitch"]
+            poseanh_roll = row["poseanh_roll"]
+            mhp_yaw = row["mhp_yaw"]
+            mhp_pitch = row["mhp_pitch"]
+            mhp_roll = row["mhp_roll"]
+
+            synergy_bin = bin_a_pose(synergy_yaw, synergy_pitch, synergy_roll)
+            poseanh_bin = bin_a_pose(poseanh_yaw, poseanh_pitch, poseanh_roll)
+            mhp_bin = bin_a_pose(mhp_yaw, mhp_pitch, mhp_roll)
+            df.loc[row_idx, "synergy_bin"] = synergy_bin
+            df.loc[row_idx, "poseanh_bin"] = poseanh_bin
+            df.loc[row_idx, "mhp_bin"] = mhp_bin
+
+            if synergy_bin == poseanh_bin == mhp_bin:
+                hard_bin = synergy_bin
+            else:
+                hard_bin = "confused"
+
+            is_profile = all(
+                [
+                    x.split("_")[0] == "profile"
+                    for x in [synergy_bin, poseanh_bin, mhp_bin]
+                ]
+            )
+            is_frontal = all(
+                [x == "frontal" for x in [synergy_bin, poseanh_bin, mhp_bin]]
+            )
+            if is_frontal:
+                soft_bin = "frontal"
+            elif is_profile:
+                is_horizontal = all(
+                    [
+                        x.split("_")[1] in ["left", "right", "extreme"]
+                        for x in [synergy_bin, poseanh_bin, mhp_bin]
+                    ]
+                )
+                is_vertical = all(
+                    [
+                        x.split("_")[1] in ["up", "down", "extreme"]
+                        for x in [synergy_bin, poseanh_bin, mhp_bin]
+                    ]
+                )
+                if is_horizontal:
+                    soft_bin = "profile_horizontal"
+                elif is_vertical:
+                    soft_bin = "profile_vertical"
+                else:
+                    soft_bin = "confused"
+            else:
+                soft_bin = "confused"
+
+            df.loc[row_idx, "hardbin"] = hard_bin
+            df.loc[row_idx, "softbin"] = soft_bin
+            hardcounter[hard_bin] += 1
+            softcounter[soft_bin] += 1
+        outputcsvpath = output_path / csv_path.name
+        df.to_csv(outputcsvpath.as_posix(), index=False)
+
 if __name__ == "__main__":
     app()

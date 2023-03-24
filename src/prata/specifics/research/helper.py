@@ -5,7 +5,7 @@ import json
 from cython_bbox import bbox_overlaps as bbox_ious
 import pandas as pd
 
-__all__ = ["ious", "read_csv_from_txt", "merge3posedf", "mergetxt"]
+__all__ = ["ious", "read_csv_from_txt", "merge3posedf", "mergetxt", "bin_a_pose"]
 
 
 def ious(atlbrs, btlbrs):
@@ -246,6 +246,22 @@ def mergetxt(gttxt, synergytxt, poseanhtxt, iqatxt):
     df = pd.DataFrame(res)
     return df
 
+def bin_a_pose(yaw, pitch, roll):
+    if abs(yaw) < 45 and abs(pitch) < 30:
+        bin = "frontal"
+    elif abs(yaw) > 90 and abs(pitch) > 90:
+        bin = "profile_extreme"
+    elif yaw > 45 and yaw < 90 and abs(pitch) < 30:
+        bin = "profile_right"
+    elif yaw < -45 and yaw > -90 and abs(pitch) < 30:
+        bin = "profile_left"
+    elif abs(yaw) < 45 and pitch > 30 and pitch < 90:
+        bin = "profile_up"
+    elif abs(yaw) < 45 and pitch < -30 and pitch > -90:
+        bin = "profile_down"
+    else:
+        bin = "frontal"
+    return bin
 
 if __name__ == "__main__":
 
