@@ -452,7 +452,7 @@ def binning(
                     ]
                 )
                 is_frontal = all(
-                    [x == "frontal" for x in ]
+                    [x == "frontal" for x in candidates]
                 )
                 if is_frontal:
                     soft_bin = "frontal"
