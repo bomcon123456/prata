@@ -410,7 +410,7 @@ def binning(
             pbardesc += f"|H{hardcounter['confused']}"
         if "confused" in softcounter:
             pbardesc += f"|E{softcounter['confused']}"
-        pbar.set_description(f"{csv_path.stem}")
+        pbar.set_description(pbardesc)
         df = pd.read_csv(csv_path.as_posix())
         records = df.to_dict("records")
         for row_idx, row in enumerate(tqdm(records)):
@@ -475,6 +475,9 @@ def binning(
             softcounter[soft_bin] += 1
         outputcsvpath = output_path / csv_path.name
         df.to_csv(outputcsvpath.as_posix(), index=False)
+
+    print("Hard: {hardcounter}")
+    print("Soft: {softcounter}")
 
 if __name__ == "__main__":
     app()
