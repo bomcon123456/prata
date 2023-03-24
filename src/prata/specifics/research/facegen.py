@@ -397,9 +397,10 @@ def vfhq_combine_multiid_into_one(
 @app.command()
 def binning(
     csv_path: Path = typer.Argument(..., help="csvpath", exists=True, dir_okay=True),
-    output_path: Path = typer.Argument(..., help="csvpath", exists=True, dir_okay=True),
+    output_path: Path = typer.Argument(..., help="outpath"),
 ):
     csv_paths = list(natsorted(csv_path.glob("*.csv")))
+    output_path.mkdir(exist_ok=True, parents=True)
     pbar = tqdm(csv_paths)
     hardcounter = defaultdict(int)
     softcounter = defaultdict(int)
