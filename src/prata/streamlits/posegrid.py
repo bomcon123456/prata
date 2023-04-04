@@ -125,7 +125,10 @@ def main(
             bin = d[posebin]
         color = bin_to_color(bin)
         colors.append(color)
-    clicked = show_grid_of_images(images, colors, img_size)
+    if len(images) == 0:
+        st.text("No images")
+    else:
+        clicked = show_grid_of_images(images, colors, img_size)
 
 
 # Load the images and display them in a grid
