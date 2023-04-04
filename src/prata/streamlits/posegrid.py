@@ -99,9 +99,11 @@ def main(
                     df[df[posebin] == filter_box] if filter_box != "all" else df
                 )
                 if len(filtered_df) == 0:
-                    st.session_state.csv_counter = max(
-                        st.session_state.csv_counter - 1, 0
+                    st.session_state.csv_counter = min(
+                        st.session_state.csv_counter + 1, len(csvs) - 1
                     )
+                else:
+                    break
             else:
                 st.text(f"All ids don't have {filter_box} bin")
 
