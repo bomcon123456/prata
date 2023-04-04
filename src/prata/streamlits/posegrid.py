@@ -147,17 +147,17 @@ def main(
                 if filter_box == "profile_horizontal":
                     if d["hardbin"] in ["profile_left", "profile_right"]:
                         bin = d["hardbin"]
-                    l = [d["synergy_yaw"], d["poseanh_yaw"]]
-                    if not math.isnan(d["mhp_yaw"]):
-                        l.append(d["mhp_yaw"])
+                    l = [d["synergy_bin"], d["poseanh_bin"]]
+                    if not math.isnan(d["mhp_bin"]):
+                        l.append(d["mhp_bin"])
                     bin = Counter(l).most_common(1)[0]
 
                 elif filter_box == "profile_vertical":
                     if d["hardbin"] in ["profile_up", "profile_down"]:
                         bin = d["hardbin"]
-                    l = [d["synergy_pitch"], d["poseanh_pitch"]]
-                    if not math.isnan(d["mhp_pitch"]):
-                        l.append(d["mhp_pitch"])
+                    l = [d["synergy_bin"], d["poseanh_bin"]]
+                    if not math.isnan(d["mhp_bin"]):
+                        l.append(d["mhp_bin"])
                     bin = Counter(l).most_common(1)[0]
                 else:
                     bin = d[posebin]
