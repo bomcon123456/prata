@@ -8,6 +8,7 @@ from st_clickable_images import clickable_images
 import typer
 import zipfile
 import base64
+from natsort import natsorted
 
 CACHE_PATH = Path("./tmp/posegrid")
 
@@ -16,7 +17,7 @@ app = typer.Typer()
 
 @st.cache_data
 def globs(basepath: Path, pattern: str):
-    files = list(basepath.rglob(pattern))
+    files = natsorted(list(basepath.rglob(pattern)))
 
     return files
 
@@ -90,7 +91,8 @@ def main(
     images = []
     colors = []
     for d in dict_df:
-        images.append(images_dict[d["frameid"]])
+        fid = str(d["frameid"]).zfill(8)
+        images.append(images_dict[fid])
         if filter_box == "profile_horizontal":
             if d["hardbin"] in ["profile_left", "profile_right"]:
                 bin = d["hardbin"]
