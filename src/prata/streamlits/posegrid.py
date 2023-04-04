@@ -111,6 +111,7 @@ def main(
                         st.session_state.csv_counter + 1, len(csvs) - 1
                     )
                 else:
+                    st.title(f"ID: {current_csv.stem}")
                     break
             else:
                 st.text(f"All ids don't have {filter_box} bin")
@@ -129,36 +130,35 @@ def main(
         st.text("No images")
     else:
         images_dict = read_img_from_zip(current_zip)
-        dict_df = filtered_df.to_dict("records")
-        images = []
-        colors = []
-        for d in dict_df:
-            fid = str(d["frameid"]).zfill(8)
-            try:
+        if len(images_dict.keys()) == 0:
+            st.session_state.session_state.csv_counter += 1
+        else:
+            dict_df = filtered_df.to_dict("records")
+            images = []
+            colors = []
+            for d in dict_df:
+                fid = str(d["frameid"]).zfill(8)
                 images.append(images_dict[fid])
-            except KeyError:
-                import pdb
-                pdb.set_trace()
-            if filter_box == "profile_horizontal":
-                if d["hardbin"] in ["profile_left", "profile_right"]:
-                    bin = d["hardbin"]
-                elif d["mhp_yaw"] is not None:
-                    bin = "profile_right" if d["mhp_yaw"] > 0 else "profile_left"
-                elif d["synergy_yaw"] is not None:
-                    bin = "profile_right" if d["mhp_yaw"] > 0 else "profile_left"
-            elif filter_box == "profile_vertical":
-                if d["hardbin"] in ["profile_up", "profile_down"]:
-                    bin = d["hardbin"]
-                elif d["mhp_pitch"] is not None:
-                    bin = "profile_up" if d["mhp_pitch"] > 0 else "profile_down"
-                elif d["synergy_pitch"] is not None:
-                    bin = "profile_up" if d["synergy_pitch"] > 0 else "profile_down"
-            else:
-                bin = d[posebin]
-            color = bin_to_color(bin)
-            colors.append(color)
+                if filter_box == "profile_horizontal":
+                    if d["hardbin"] in ["profile_left", "profile_right"]:
+                        bin = d["hardbin"]
+                    elif d["mhp_yaw"] is not None:
+                        bin = "profile_right" if d["mhp_yaw"] > 0 else "profile_left"
+                    elif d["synergy_yaw"] is not None:
+                        bin = "profile_right" if d["mhp_yaw"] > 0 else "profile_left"
+                elif filter_box == "profile_vertical":
+                    if d["hardbin"] in ["profile_up", "profile_down"]:
+                        bin = d["hardbin"]
+                    elif d["mhp_pitch"] is not None:
+                        bin = "profile_up" if d["mhp_pitch"] > 0 else "profile_down"
+                    elif d["synergy_pitch"] is not None:
+                        bin = "profile_up" if d["synergy_pitch"] > 0 else "profile_down"
+                else:
+                    bin = d[posebin]
+                color = bin_to_color(bin)
+                colors.append(color)
 
-        clicked = show_grid_of_images(images, colors, img_size)
+            clicked = show_grid_of_images(images, colors, img_size)
 
 
 # Load the images and display them in a grid
