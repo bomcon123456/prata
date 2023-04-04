@@ -69,6 +69,8 @@ def main(
 ):
     st.title("Pose Grid")
 
+    csvs = globs(csv_paths, "*.csv")
+
     with st.sidebar:
         filter_box = st.sidebar.selectbox(
             "Filter",
@@ -81,8 +83,13 @@ def main(
             ),
         )
         img_size = st.slider("Image Size", 50, 100, 50, step=5, key="img_size")
+        if st.button("Next"):
+            st.session_state.csv_counter = min(
+                st.session_state.csv_counter + 1, len(csvs) - 1
+            )
+        else:
+            st.session_state.csv_counter = max(st.session_state.csv_counter - 1, 0)
 
-    csvs = globs(csv_paths, "*.csv")
     current_csv = csvs[st.session_state.csv_counter]
 
     if "df" not in st.session_state:
