@@ -87,7 +87,7 @@ def main(
             st.session_state.csv_counter = min(
                 st.session_state.csv_counter + 1, len(csvs) - 1
             )
-        else:
+        if st.button("Prev"):
             st.session_state.csv_counter = max(st.session_state.csv_counter - 1, 0)
 
     current_csv = csvs[st.session_state.csv_counter]
