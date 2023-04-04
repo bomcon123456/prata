@@ -75,7 +75,8 @@ def main(
         img_size = st.slider("Image Size", 50, 100, 50, step=5, key="img_size")
 
     csvs = globs(csv_paths, "*.csv")
-    if getattr(st.session_state, "df", None):
+    if "df" not in st.session_state:
+        print("im here")
         current_csv = csvs[st.session_state.csv_counter]
         df = pd.read_csv(current_csv)
         st.session_state.df = df
