@@ -118,9 +118,7 @@ def main(
 def show_grid_of_images(image_files, colors, img_size):
     images = []
     for file in image_files:
-        with open(file, "rb") as image:
-            encoded = base64.b64encode(image.read()).decode()
-        images.append(f"data:image/jpeg;base64,{encoded}")
+        images.append(f"data:image/jpeg;base64,{file}")
 
     clicked = clickable_images(
         images,
