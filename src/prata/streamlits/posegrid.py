@@ -1,4 +1,6 @@
 import streamlit as st
+import math
+from collections import Counter
 import base64
 from io import BytesIO
 from pathlib import Path
@@ -145,17 +147,18 @@ def main(
                 if filter_box == "profile_horizontal":
                     if d["hardbin"] in ["profile_left", "profile_right"]:
                         bin = d["hardbin"]
-                    elif d["mhp_yaw"] is not None:
-                        bin = "profile_right" if d["mhp_yaw"] > 0 else "profile_left"
-                    elif d["synergy_yaw"] is not None:
-                        bin = "profile_right" if d["mhp_yaw"] > 0 else "profile_left"
+                    l = [d["synergy_yaw"], d["poseanh_yaw"]]
+                    if not math.isnan(d["mhp_yaw"]):
+                        l.append(d["mhp_yaw"])
+                    bin = Counter(l).most_common(1)
+
                 elif filter_box == "profile_vertical":
                     if d["hardbin"] in ["profile_up", "profile_down"]:
                         bin = d["hardbin"]
-                    elif d["mhp_pitch"] is not None:
-                        bin = "profile_up" if d["mhp_pitch"] > 0 else "profile_down"
-                    elif d["synergy_pitch"] is not None:
-                        bin = "profile_up" if d["synergy_pitch"] > 0 else "profile_down"
+                    l = [d["synergy_pitch"], d["poseanh_pitch"]]
+                    if not math.isnan(d["mhp_pitch"]):
+                        l.append(d["mhp_pitch"])
+                    bin = Counter(l).most_common(1)
                 else:
                     bin = d[posebin]
                 color = bin_to_color(bin)
