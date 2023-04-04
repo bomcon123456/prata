@@ -86,7 +86,9 @@ def main(
             ),
         )
         current_csv = csvs[st.session_state.csv_counter]
-        st.title(f"ID: {current_csv.stem}")
+        st.title(
+            f"ID: {current_csv.stem} ({st.session_state.csv_counter + 1}/{len(csvs)}))"
+        )
         img_size = st.slider("Image Size", 50, 100, 50, step=5, key="img_size")
         if st.button("Next"):
             st.session_state.csv_counter = min(
@@ -114,8 +116,7 @@ def main(
                         st.session_state.csv_counter + 1, len(csvs) - 1
                     )
                 else:
-                    st.title(f"ID: {current_csv.stem}")
-                    break
+                    st.experimental_rerun()
             else:
                 st.text(f"All ids don't have {filter_box} bin")
 
