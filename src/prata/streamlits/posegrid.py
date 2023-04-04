@@ -86,6 +86,7 @@ def main(
             ),
         )
         current_csv = csvs[st.session_state.csv_counter]
+        print(st.session_state.csv_counter)
         st.title(
             f"ID: {current_csv.stem} ({st.session_state.csv_counter + 1}/{len(csvs)}))"
         )
