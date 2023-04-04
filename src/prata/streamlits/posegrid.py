@@ -49,8 +49,10 @@ def read_img_from_zip(zip_path: Path):
                 with Image.open(BytesIO(image_bytes)) as img:
                     img_resized = img.resize((50, 50))
                     img_resized_bytes = BytesIO()
-                    img_resized.save(img_resized_bytes, format="JPG")
-                    img_base64 = base64.b64encode(img_resized_bytes.getvalue()).decode('utf-8')
+                    img_resized.save(img_resized_bytes, format="JPEG")
+                    img_base64 = base64.b64encode(img_resized_bytes.getvalue()).decode(
+                        "utf-8"
+                    )
                 res[Path(file_name).stem] = img_base64
     return res
 
