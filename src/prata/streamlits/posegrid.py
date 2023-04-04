@@ -96,26 +96,26 @@ def main(
                 st.session_state.csv_counter + 1, len(csvs) - 1
             )
             st.experimental_rerun()
-        # if st.button("Prev"):
-        #     st.session_state.csv_counter = max(st.session_state.csv_counter - 1, 0)
-        #     st.experimental_rerun()
-        # if st.button("Find first have image"):
-        #     st.session_state.csv_counter += 1
-        #     while st.session_state.csv_counter < len(csvs) - 1:
-        #         current_csv = csvs[st.session_state.csv_counter]
-        #         df = pd.read_csv(current_csv)
-        #         st.session_state.df = df
-        #         filtered_df = (
-        #             df[df[posebin] == filter_box] if filter_box != "all" else df
-        #         )
-        #         if len(filtered_df) == 0:
-        #             st.session_state.csv_counter = min(
-        #                 st.session_state.csv_counter + 1, len(csvs) - 1
-        #             )
-        #         else:
-        #             st.experimental_rerun()
-        #     else:
-        #         st.text(f"All ids don't have {filter_box} bin")
+        if st.button("Prev"):
+            st.session_state.csv_counter = max(st.session_state.csv_counter - 1, 0)
+            st.experimental_rerun()
+        if st.button("Find first have image"):
+            st.session_state.csv_counter += 1
+            while st.session_state.csv_counter < len(csvs) - 1:
+                current_csv = csvs[st.session_state.csv_counter]
+                df = pd.read_csv(current_csv)
+                st.session_state.df = df
+                filtered_df = (
+                    df[df[posebin] == filter_box] if filter_box != "all" else df
+                )
+                if len(filtered_df) == 0:
+                    st.session_state.csv_counter = min(
+                        st.session_state.csv_counter + 1, len(csvs) - 1
+                    )
+                else:
+                    st.experimental_rerun()
+            else:
+                st.text(f"All ids don't have {filter_box} bin")
 
     current_csv = csvs[st.session_state.csv_counter]
 
@@ -134,7 +134,7 @@ def main(
     else:
         images_dict = read_img_from_zip(current_zip, fids)
         if len(images_dict.keys()) == 0:
-            st.session_state.csv_counter += 1
+            st.text("No images")
         else:
             dict_df = filtered_df.to_dict("records")
             images = []
