@@ -36,13 +36,16 @@ def bin_to_color(bin):
 
 
 @st.cache_data
-def read_img_from_zip(zip_path: Path):
+def read_img_from_zip(zip_path: Path, fids):
     res = {}
     with zipfile.ZipFile(zip_path, "r") as zip_file:
         for file_name in zip_file.namelist():
             if not file_name.lower().endswith(
                 (".png", ".jpg", ".jpeg", ".bmp", ".gif")
             ):
+                continue
+            fn = Path(file_name)
+            if fn.stem not in fids:
                 continue
             with zip_file.open(file_name) as my_file:
                 image_bytes = my_file.read()
@@ -126,12 +129,14 @@ def main(
     current_zip = zip_paths / f"{current_csv.stem}.zip"
 
     filtered_df = df[df[posebin] == filter_box] if filter_box != "all" else df
+    fids = filtered_df["frameid"].tolist()
+    fids = set(map(lambda x: str(x).zfill(8), fids))
     if len(filtered_df) == 0:
         st.text("No images")
     else:
-        images_dict = read_img_from_zip(current_zip)
+        images_dict = read_img_from_zip(current_zip, fids)
         if len(images_dict.keys()) == 0:
-            st.session_state.session_state.csv_counter += 1
+            st.session_state.csv_counter += 1
         else:
             dict_df = filtered_df.to_dict("records")
             images = []
