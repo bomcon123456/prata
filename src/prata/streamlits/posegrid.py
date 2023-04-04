@@ -20,6 +20,7 @@ def globs(basepath: Path, pattern: str):
 
     return files
 
+
 def bin_to_color(bin):
     d = {
         "frontal": "white",
@@ -27,7 +28,7 @@ def bin_to_color(bin):
         "profile_right": "green",
         "profile_up": "yellow",
         "profile_down": "blue",
-        "profile_extreme": "purple"
+        "profile_extreme": "purple",
     }
     return d[bin]
 
@@ -74,7 +75,7 @@ def main(
         img_size = st.slider("Image Size", 50, 100, 50, step=5, key="img_size")
 
     csvs = globs(csv_paths, "*.csv")
-    if st.session_state.get("df", None):
+    if getattr(st.session_state, "df", None):
         current_csv = csvs[st.session_state.csv_counter]
         df = pd.read_csv(current_csv)
         st.session_state.df = df
