@@ -98,6 +98,7 @@ def main(
             df = pd.read_csv(current_csv)
             st.session_state.df = df
         if st.button("Find first have image"):
+            st.session_state.csv_counter += 1
             while st.session_state.csv_counter < len(csvs) - 1:
                 current_csv = csvs[st.session_state.csv_counter]
                 df = pd.read_csv(current_csv)
@@ -133,7 +134,11 @@ def main(
         colors = []
         for d in dict_df:
             fid = str(d["frameid"]).zfill(8)
-            images.append(images_dict[fid])
+            try:
+                images.append(images_dict[fid])
+            except KeyError:
+                import pdb
+                pdb.set_trace()
             if filter_box == "profile_horizontal":
                 if d["hardbin"] in ["profile_left", "profile_right"]:
                     bin = d["hardbin"]
