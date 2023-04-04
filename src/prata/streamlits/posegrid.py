@@ -1,5 +1,6 @@
 import streamlit as st
 import base64
+from io import BytesIO
 from pathlib import Path
 import pandas as pd
 from PIL import Image
@@ -45,8 +46,12 @@ def read_img_from_zip(zip_path: Path):
                 continue
             with zip_file.open(file_name) as my_file:
                 image_bytes = my_file.read()
-                image_base64 = base64.b64encode(image_bytes).decode("utf-8")
-                res[Path(file_name).stem] = image_base64
+                with Image.open(BytesIO(image_bytes)) as img:
+                    img_resized = img.resize((50, 50))
+                    img_resized_bytes = BytesIO()
+                    img_resized.save(img_resized_bytes, format="JPG")
+                    img_base64 = base64.b64encode(img_resized_bytes.getvalue()).decode('utf-8')
+                res[Path(file_name).stem] = img_base64
     return res
 
 
