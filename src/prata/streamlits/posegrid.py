@@ -56,7 +56,7 @@ if "csv_counter" not in st.session_state:
 def main(
     csv_paths: Path = typer.Argument(..., help="csv path", exists=True, dir_okay=True),
     zip_paths: Path = typer.Argument(..., help="zip path", exists=True, dir_okay=True),
-    posebin: bool = typer.Option("softbin", help="column name for posebin"),
+    posebin: str = typer.Option("softbin", help="column name for posebin"),
 ):
     st.title("Pose Grid")
 
