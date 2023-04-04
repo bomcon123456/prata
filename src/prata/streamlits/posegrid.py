@@ -82,6 +82,8 @@ def main(
                 "profile_extreme",
             ),
         )
+        current_csv = csvs[st.session_state.csv_counter]
+        st.title(f"ID: {current_csv.stem}")
         img_size = st.slider("Image Size", 50, 100, 50, step=5, key="img_size")
         if st.button("Next"):
             st.session_state.csv_counter = min(
@@ -89,6 +91,19 @@ def main(
             )
         if st.button("Prev"):
             st.session_state.csv_counter = max(st.session_state.csv_counter - 1, 0)
+        if st.button("Find first have image"):
+            while st.session_state.csv_counter < len(csvs) - 1:
+                current_csv = csvs[st.session_state.csv_counter]
+                df = st.session_state.df
+                filtered_df = (
+                    df[df[posebin] == filter_box] if filter_box != "all" else df
+                )
+                if len(filtered_df) == 0:
+                    st.session_state.csv_counter = max(
+                        st.session_state.csv_counter - 1, 0
+                    )
+            else:
+                st.text(f"All ids don't have {filter_box} bin")
 
     current_csv = csvs[st.session_state.csv_counter]
 
