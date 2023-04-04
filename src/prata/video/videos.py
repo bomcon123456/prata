@@ -22,6 +22,7 @@ def cut(
         ..., help="video base path", exists=True, dir_okay=True
     ),
     output_path: Path = typer.Argument(..., help="output base path"),
+    output_csv: bool = typer.Option(True, help="output csv or not"),
 ):
     if output_path.exists():
         inp = input("Existed, override? (y/n)")
@@ -32,6 +33,8 @@ def cut(
     output_path.mkdir(exist_ok=True, parents=True)
     # Read starting and ending time
     df = pd.read_csv(csv_path)
+    if output_csv:
+        dout = {"name": [], "ids": []}
     for id, row in tqdm(df.iterrows(), total=len(df)):
         in_video = "{}".format(row["name"])
         out_video = "cut_{}.mp4".format(id)
@@ -39,12 +42,21 @@ def cut(
         assert in_path.exists()
         start = row.start
         end = row.end
-        category = row.category
+        if row.get("category", None) is not None:
+            category = row.category
+        else:
+            category = "video"
         out_path = output_path / category / out_video
         out_path.parent.mkdir(exist_ok=True, parents=True)
         cmd = f"ffmpeg -i '{in_path}' -ss {start} -to {end} -c copy {out_path}"
         logger.info(cmd)
         _ = subprocess.check_output(cmd, shell=True)
+        if output_csv:
+            dout["name"].append(out_video)
+            dout["ids"].append(row.get("ids", ""))
+    if output_csv:
+        df_ = pd.DataFrame(dout)
+        df_.to_csv(output_path / "metadata.csv", index=False)
 
 
 @app.command()
