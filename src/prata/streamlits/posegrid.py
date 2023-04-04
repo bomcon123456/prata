@@ -148,7 +148,7 @@ def main(
                     if d["hardbin"] in ["profile_left", "profile_right"]:
                         bin = d["hardbin"]
                     l = [d["synergy_bin"], d["poseanh_bin"]]
-                    if not math.isnan(d["mhp_bin"]):
+                    if isinstance(d["mhp_bin"], float) and not math.isnan(d["mhp_bin"]):
                         l.append(d["mhp_bin"])
                     bin = Counter(l).most_common(1)[0][0]
 
@@ -156,7 +156,7 @@ def main(
                     if d["hardbin"] in ["profile_up", "profile_down"]:
                         bin = d["hardbin"]
                     l = [d["synergy_bin"], d["poseanh_bin"]]
-                    if not math.isnan(d["mhp_bin"]):
+                    if isinstance(d["mhp_bin"], float) and not math.isnan(d["mhp_bin"]):
                         l.append(d["mhp_bin"])
                     bin = Counter(l).most_common(1)[0][0]
                 else:
