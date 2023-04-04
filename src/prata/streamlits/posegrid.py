@@ -150,7 +150,7 @@ def main(
                     l = [d["synergy_yaw"], d["poseanh_yaw"]]
                     if not math.isnan(d["mhp_yaw"]):
                         l.append(d["mhp_yaw"])
-                    bin = Counter(l).most_common(1)
+                    bin = Counter(l).most_common(1)[0]
 
                 elif filter_box == "profile_vertical":
                     if d["hardbin"] in ["profile_up", "profile_down"]:
@@ -158,7 +158,7 @@ def main(
                     l = [d["synergy_pitch"], d["poseanh_pitch"]]
                     if not math.isnan(d["mhp_pitch"]):
                         l.append(d["mhp_pitch"])
-                    bin = Counter(l).most_common(1)
+                    bin = Counter(l).most_common(1)[0]
                 else:
                     bin = d[posebin]
                 color = bin_to_color(bin)
