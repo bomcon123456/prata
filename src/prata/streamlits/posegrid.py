@@ -89,12 +89,19 @@ def main(
             st.session_state.csv_counter = min(
                 st.session_state.csv_counter + 1, len(csvs) - 1
             )
+            current_csv = csvs[st.session_state.csv_counter]
+            df = pd.read_csv(current_csv)
+            st.session_state.df = df
         if st.button("Prev"):
             st.session_state.csv_counter = max(st.session_state.csv_counter - 1, 0)
+            current_csv = csvs[st.session_state.csv_counter]
+            df = pd.read_csv(current_csv)
+            st.session_state.df = df
         if st.button("Find first have image"):
             while st.session_state.csv_counter < len(csvs) - 1:
                 current_csv = csvs[st.session_state.csv_counter]
-                df = st.session_state.df
+                df = pd.read_csv(current_csv)
+                st.session_state.df = df
                 filtered_df = (
                     df[df[posebin] == filter_box] if filter_box != "all" else df
                 )
