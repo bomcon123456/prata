@@ -250,17 +250,17 @@ def mergetxt(gttxt, synergytxt, poseanhtxt, iqatxt):
 def bin_a_pose(yaw, pitch, roll):
     if math.isnan(yaw) or math.isnan(pitch) or math.isnan(roll):
         return None
-    if abs(yaw) < 45 and abs(pitch) < 30:
+    if abs(yaw) < 40 and abs(pitch) < 30:
         bin = "frontal"
     elif abs(yaw) > 90 and abs(pitch) > 90:
         bin = "profile_extreme"
-    elif yaw > 45 and yaw < 90 and abs(pitch) < 30:
+    elif yaw > 40 and yaw < 180 and abs(pitch) < 30:
         bin = "profile_right"
-    elif yaw < -45 and yaw > -90 and abs(pitch) < 30:
+    elif yaw < -40 and yaw > -180 and abs(pitch) < 30:
         bin = "profile_left"
-    elif abs(yaw) < 45 and pitch > 30 and pitch < 90:
+    elif abs(yaw) < 40 and pitch > 30 and pitch < 180:
         bin = "profile_up"
-    elif abs(yaw) < 45 and pitch < -30 and pitch > -90:
+    elif abs(yaw) < 40 and pitch < -30 and pitch > -180:
         bin = "profile_down"
     else:
         bin = "frontal"
