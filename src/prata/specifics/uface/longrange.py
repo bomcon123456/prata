@@ -306,7 +306,7 @@ def aligned_from_csv(
                 break
 
             ret, frame = cap.read()
-            if cv2.waitKey(1) & 0xFF == ord("q"):
+            if frame is None:
                 break
             bboxes = df[df["image_id"] == frame_idx]
 
