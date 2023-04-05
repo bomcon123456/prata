@@ -286,7 +286,7 @@ def aligned_from_csv(
     metadata_df = pd.read_csv(metadata_path)
 
     dfs = []
-    for csv_path in tqdm(csv_paths[:5]):
+    for csv_path in tqdm(csv_paths):
         df = pd.read_csv(csv_path, delimiter="\t")
         df = unify_label_for_track_id(df)
         max_frameid = max(df["image_id"].values)
