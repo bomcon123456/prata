@@ -147,6 +147,9 @@ def parseline_synergy(line):
         # lmks5pts = numbers[6:6+10]
         pose = numbers[16:19]
         lmks68pts = numbers[19:]
+    elif len(numbers) == 16:
+        pose = None
+        lmks68pts = None
     else:
         # lmks5pts = None
         # offset lmk5pts
@@ -175,6 +178,8 @@ def parseline_poseanh(line):
     if len(numbers) == NCOLS:
         # lmks5pts = numbers[6:6+10]
         pose = numbers[16:19]
+    elif len(numbers) == 16:
+        pose = None
     else:
         # lmks5pts = None
         # offset lmk5pts
@@ -192,21 +197,15 @@ def parseline_poseanh(line):
     )
     return d
 
+
 def parseline_iqa(line):
     numbers = line.split()
     numbers[2:] = list(map(lambda x: float(x), numbers[2:]))
     frameid, idx, x1, y1, x2, y2 = numbers[:6]
     iqa = numbers[-1] if len(numbers) > 6 else None
-    d = dict(
-        frameid=frameid,
-        idx=idx,
-        x1=x1,
-        y1=y1,
-        x2=x2,
-        y2=y2,
-        iqa=iqa
-    )
+    d = dict(frameid=frameid, idx=idx, x1=x1, y1=y1, x2=x2, y2=y2, iqa=iqa)
     return d
+
 
 def merge_dict(dict1, dict2):
     res = dict1.copy()
@@ -229,7 +228,9 @@ def mergetxt(gttxt, synergytxt, poseanhtxt, iqatxt):
         iqalines = f.readlines()[7:-1]
     assert len(gtlines) == len(synergylines) == len(poseanhlines) == len(iqalines)
     res = []
-    for gtline, synergyline, poseanhline, iqaline in zip(gtlines, synergylines, poseanhlines, iqalines):
+    for gtline, synergyline, poseanhline, iqaline in zip(
+        gtlines, synergylines, poseanhlines, iqalines
+    ):
         gtline = gtline.strip()
         synergyline = synergyline.strip()
         poseanhline = poseanhline.strip()
@@ -246,6 +247,7 @@ def mergetxt(gttxt, synergytxt, poseanhtxt, iqatxt):
         res.append(finaldet)
     df = pd.DataFrame(res)
     return df
+
 
 def bin_a_pose(yaw, pitch, roll):
     if math.isnan(yaw) or math.isnan(pitch) or math.isnan(roll):
@@ -265,6 +267,7 @@ def bin_a_pose(yaw, pitch, roll):
     else:
         bin = "frontal"
     return bin
+
 
 if __name__ == "__main__":
 
