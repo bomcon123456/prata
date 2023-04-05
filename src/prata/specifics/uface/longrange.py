@@ -316,6 +316,7 @@ def aligned_from_csv(
                         continue
                     label = bbox["label"]
                     trackid = bbox["track_id"]
+                    conf_score = bbox["score"]
                     lmk = (
                         np.array(bbox["face_lmks"].split(" "))
                         .astype(np.int32)
@@ -324,7 +325,7 @@ def aligned_from_csv(
                     aligned = norm_crop(frame, lmk)
                     id_name = f"{video_date}_{shorten_name.replace('_','').rstrip('.mp4')}_{trackid}_{label}"
                     counter = 0
-                    outpath = output_dir / id_name / f"{frame_idx}_{counter}.jpg"
+                    outpath = output_dir / id_name / f"{frame_idx}_{conf_score:.3f}_{counter}.jpg"
                     outpath.parent.mkdir(exist_ok=True, parents=True)
                     while outpath.exists():
                         outpath = output_dir / id_name / f"{frame_idx}_{counter}.jpg"
