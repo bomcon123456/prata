@@ -265,7 +265,7 @@ def bin_a_pose(yaw, pitch, roll):
     elif abs(yaw) < 40 and pitch < -30 and pitch > -180:
         bin = "profile_down"
     else:
-        bin = "frontal"
+        bin = "profile_extreme"
     return bin
 
 
