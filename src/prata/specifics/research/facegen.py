@@ -1,4 +1,5 @@
 import json
+from collections import Counter
 import os
 import re
 import shutil
@@ -424,7 +425,7 @@ def binning(
             mhp_pitch = row["mhp_pitch"]
             mhp_roll = row["mhp_roll"]
 
-            synergy_bin = bin_a_pose(synergy_yaw, synergy_pitch, synergy_roll)
+            synergy_bin = bin_a_pose(-synergy_yaw, -synergy_pitch, -synergy_roll)
             poseanh_bin = bin_a_pose(poseanh_yaw, poseanh_pitch, poseanh_roll)
             mhp_bin = bin_a_pose(mhp_yaw, mhp_pitch, mhp_roll)
             df.loc[row_idx, "synergy_bin"] = synergy_bin
@@ -433,7 +434,7 @@ def binning(
 
             candidates = []
             for c in [synergy_bin, poseanh_bin, mhp_bin]:
-                if c is not None:
+                if c is not None and not isinstance(c, float):
                     candidates.append(c)
             if len(candidates) == 0:
                 hard_bin = "confused"
@@ -454,7 +455,11 @@ def binning(
                 is_frontal = all(
                     [x == "frontal" for x in candidates]
                 )
-                if is_frontal:
+                counter = Counter(candidates)
+                majority_vote = counter.most_common(1)[0]
+                if majority_vote[1] > 1:
+                    soft_bin = majority_vote[0]
+                elif is_frontal:
                     soft_bin = "frontal"
                 elif is_profile:
                     is_horizontal = all(
