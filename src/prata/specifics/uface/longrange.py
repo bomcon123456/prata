@@ -290,7 +290,6 @@ def aligned_from_csv(
         df = pd.read_csv(csv_path, delimiter="\t")
         df = unify_label_for_track_id(df)
         max_frameid = max(df["image_id"].values)
-        print(max_frameid)
         video_path = video_dir / (csv_path.parent.stem + ".mp4")
         shorten_name = "_".join(video_path.name.split("_")[2:])
         video_date = metadata_df[metadata_df["video_path"] == shorten_name].date.values[
