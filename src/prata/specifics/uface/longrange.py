@@ -1,13 +1,39 @@
-from genericpath import exists
+import math
 import os
-from collections import defaultdict
-import typer
-import pandas as pd
-from tqdm import tqdm
-from pathlib import Path
-import shortuuid
 import random
 import shutil
+from collections import Counter, defaultdict
+from pathlib import Path
+
+import cv2
+import numpy as np
+import pandas as pd
+import shortuuid
+import typer
+from natsort import natsorted
+from tqdm import tqdm
+
+from .face_aligncrop import norm_crop
+
+
+def unify_label_for_track_id(df):
+    groupdbytrackid = (
+        df.groupby("track_id")["label"].apply(list).reset_index(name="label")
+    )
+    for row in groupdbytrackid.itertuples():
+        tmp = filter(lambda x: x != "FACE_NOT_FOUND", row.label)
+        dict_counter = Counter(tmp)
+        if "unknown" in dict_counter:
+            dict_counter["unknown"] //= 2
+
+        k = dict_counter.most_common(1)
+        if len(k) == 0:
+            final_label = "unknown"
+        else:
+            final_label = k[0][0]
+        df.loc[df["track_id"] == row.track_id, "label"] = final_label
+    return df
+
 
 app = typer.Typer()
 
@@ -244,6 +270,77 @@ def create_cropped_metadata(input_path: Path = typer.Argument(..., help="inp")):
         }
     )
     df.to_csv((input_path / "cropped_metadata.csv"), index=False)
+
+
+@app.command()
+def aligned_from_csv(
+    csv_path: Path = typer.Argument(..., help="csv path"),
+    video_dir: Path = typer.Argument(..., help="video path"),
+    metadata_path: Path = typer.Argument(..., help="metadata path"),
+    output_dir: Path = typer.Argument(..., help="output path"),
+):
+    if csv_path.is_dir():
+        csv_paths = natsorted(list(csv_path.rglob("*.csv")))
+    else:
+        csv_paths = [csv_path]
+    metadata_df = pd.read_csv(metadata_path)
+
+    dfs = []
+    for csv_path in tqdm(csv_paths[:5]):
+        df = pd.read_csv(csv_path, delimiter="\t")
+        df = unify_label_for_track_id(df)
+        max_frameid = max(df["image_id"].values)
+        print(max_frameid)
+        video_path = video_dir / (csv_path.parent.stem + ".mp4")
+        shorten_name = "_".join(video_path.name.split("_")[2:])
+        video_date = metadata_df[metadata_df["video_path"] == shorten_name].date.values[
+            0
+        ]
+
+        assert video_path.exists(), f"{video_path} is not a valid video path"
+        cap = cv2.VideoCapture(video_path.as_posix())
+
+        frame_idx = 1
+        while cap.isOpened():
+            if frame_idx > max_frameid:
+                break
+
+            ret, frame = cap.read()
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
+            bboxes = df[df["image_id"] == frame_idx]
+
+            if len(bboxes) > 0:
+                for _, bbox in bboxes.iterrows():
+                    if math.isnan(bbox["face_left"]):
+                        continue
+                    label = bbox["label"]
+                    trackid = bbox["track_id"]
+                    lmk = (
+                        np.array(bbox["face_lmks"].split(" "))
+                        .astype(np.int32)
+                        .reshape(-1, 2)
+                    )
+                    aligned = norm_crop(frame, lmk)
+                    id_name = f"{video_date}_{shorten_name.replace('_','').rstrip('.mp4')}_{trackid}_{label}"
+                    counter = 0
+                    outpath = output_dir / id_name / f"{frame_idx}_{counter}.jpg"
+                    outpath.parent.mkdir(exist_ok=True, parents=True)
+                    while outpath.exists():
+                        outpath = output_dir / id_name / f"{frame_idx}_{counter}.jpg"
+                        counter += 1
+                    cv2.imwrite(outpath.as_posix(), aligned)
+                    df.loc[
+                        df["annotation_id"] == bbox["annotation_id"], "aligned"
+                    ] = outpath.relative_to(output_dir).as_posix()
+                    df.loc[
+                        df["annotation_id"] == bbox["annotation_id"], "video_path"
+                    ] = video_path.relative_to(video_dir).as_posix()
+
+            frame_idx += 1
+        dfs.append(df)
+    df = pd.concat(dfs)
+    df.to_csv(output_dir / "aligned.csv", index=False)
 
 
 if __name__ == "__main__":
