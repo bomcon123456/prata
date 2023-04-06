@@ -33,7 +33,9 @@ def bin_to_color(bin):
         "profile_up": "yellow",
         "profile_down": "blue",
         "profile_extreme": "purple",
-        "confused": "orange"
+        "confused": "orange",
+        "profile_horizontal": "cyan",
+        "profile_vertical": "grey"
     }
     return d[bin]
 
