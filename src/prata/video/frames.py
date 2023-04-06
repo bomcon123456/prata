@@ -178,7 +178,7 @@ def zipimages_to_thumbnail(
                     image_bytes = my_file.read()
                     with Image.open(BytesIO(image_bytes)) as img:
                         img.thumbnail((50, 50))
-                        p = out_path / zip_path.stem / Path(file_name).name
+                        p = out_path / zip_path.stem / (Path(file_name).stem + ".jpg")
                         p.parent.mkdir(exist_ok=True, parents=True)
                         img.save(p.as_posix())
 
