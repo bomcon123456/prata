@@ -144,7 +144,8 @@ def main(
     df = st.session_state.df
     current_zip = zip_paths / f"{current_csv.stem}.zip"
 
-    filtered_df = df[df[posebin] == filter_box] if filter_box != "all" else df
+    filtered_df = df[df[posebin] == filter_box] if filter_box != "all" else df.copy()
+    filtered_df.reset_index(inplace=True)
     fids = filtered_df["frameid"].tolist()
     fids = set(map(lambda x: str(x).zfill(8), fids))
     if len(filtered_df) == 0:
@@ -193,9 +194,8 @@ def main(
 
             clicked = show_grid_of_images(images, colors, img_size)
             if clicked > -1:
-                print(dict_df[clicked].index)
-                print(dict_df)
-                print(df[dict_df[clicked].index])
+                clicked_index = filtered_df.iloc[clicked]["index"]
+                st.session_state.df.iloc[clicked_index, posebin] = new_label
 
 
 
