@@ -327,8 +327,8 @@ def aligned_from_csv(
                     outpath = output_dir / id_name / f"{frame_idx}_{conf_score:.3f}_{counter}.jpg"
                     outpath.parent.mkdir(exist_ok=True, parents=True)
                     while outpath.exists():
-                        outpath = output_dir / id_name / f"{frame_idx}_{conf_score:.3f}_{counter}.jpg"
                         counter += 1
+                        outpath = output_dir / id_name / f"{frame_idx}_{conf_score:.3f}_{counter}.jpg"
                     cv2.imwrite(outpath.as_posix(), aligned)
                     df.loc[
                         df["annotation_id"] == bbox["annotation_id"], "aligned"
