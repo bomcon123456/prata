@@ -164,7 +164,7 @@ def main(
                 if filter_box == "profile_horizontal":
                     if d["hardbin"] in ["profile_left", "profile_right"]:
                         bin = d["hardbin"]
-                    l = [d["synergy_yaw"], d["poseanh_yaw"]]
+                    l = [-d["synergy_yaw"], d["poseanh_yaw"]]
                     if isinstance(d["mhp_yaw"], float) and not math.isnan(d["mhp_yaw"]):
                         l.append(d["mhp_yaw"])
                     is_right = sum([x > 0 for x in l])
@@ -178,7 +178,7 @@ def main(
                     if d["hardbin"] in ["profile_up", "profile_down"]:
                         bin = d["hardbin"]
 
-                    l = [d["synergy_pitch"], d["poseanh_pitch"]]
+                    l = [-d["synergy_pitch"], d["poseanh_pitch"]]
                     if isinstance(d["mhp_pitch"], float) and not math.isnan(d["mhp_pitch"]):
                         l.append(d["mhp_pitch"])
                     is_up = sum([x > 0 for x in l])
@@ -195,7 +195,8 @@ def main(
             clicked = show_grid_of_images(images, colors, img_size)
             if clicked > -1:
                 clicked_index = filtered_df.iloc[clicked]["index"]
-                st.session_state.df.iloc[clicked_index, posebin] = new_label
+                st.session_state.df.loc[clicked_index, posebin] = new_label
+                st.experimental_rerun()
 
 
 
