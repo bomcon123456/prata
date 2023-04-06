@@ -1,4 +1,6 @@
 import streamlit as st
+import numpy as np
+import pyvips
 import math
 from collections import Counter
 import base64
@@ -55,12 +57,17 @@ def read_img_from_zip(zip_path: Path, fids):
             with zip_file.open(file_name) as my_file:
                 image_bytes = my_file.read()
                 with Image.open(BytesIO(image_bytes)) as img:
-                    img_resized = img.resize((50, 50))
-                    img_resized_bytes = BytesIO()
-                    img_resized.save(img_resized_bytes, format="JPEG")
-                    img_base64 = base64.b64encode(img_resized_bytes.getvalue()).decode(
-                        "utf-8"
-                    )
+                    image = pyvips.Image.new_from_file(img, access="sequential", shrink=4) 
+                    mem_img = image.write_to_memory() 
+                    imgnp=np.frombuffer(mem_img, dtype=np.uint8).reshape(image.height, image.width, 3)  
+                    img_base64=base64.b64encode(imgnp).decode("utf-8")
+
+                    # img_resized = img.resize((50, 50))
+                    # img_resized_bytes = BytesIO()
+                    # img_resized.save(img_resized_bytes, format="JPEG")
+                    # img_base64 = base64.b64encode(img_resized_bytes.getvalue()).decode(
+                    #     "utf-8"
+                    # )
                 res[Path(file_name).stem] = img_base64
     return res
 
