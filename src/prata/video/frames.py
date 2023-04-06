@@ -186,9 +186,11 @@ def zipimages_to_thumbnail(
 
     pool = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
     results = []
-    for result in tqdm(
+    pbar = tqdm(
         pool.map(func, zip_paths), total=len(zip_paths)
-    ):
+    )
+    pbar.set_description("zipimages_to_thumbnail")
+    for result in pbar:
         results.append(result)
 
 
