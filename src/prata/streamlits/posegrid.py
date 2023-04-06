@@ -130,11 +130,11 @@ def main(
             st.session_state.csv_counter = 0
             st.experimental_rerun()
         if st.button("Set all to label"):
-            save(save_inplace, csvs)
             if filter_box != "all":
                 st.session_state.df.loc[st.session_state.df[posebin] == filter_box, posebin] = new_label
             else:
                 st.session_state.df.loc[:, posebin] = new_label
+            save(save_inplace, csvs)
             st.experimental_rerun()
         if st.button("Find first have image"):
             save(save_inplace, csvs)
