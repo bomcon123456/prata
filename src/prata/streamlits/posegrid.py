@@ -70,8 +70,10 @@ if "csv_counter" not in st.session_state:
 
 def save(save_inplace, csvs):
     if save_inplace and "df" in st.session_state:
-        current_csv = csvs[st.session_state.csv_counter]
-        st.session_state.df.to_csv(current_csv, index=False)
+        if "changes" in st.session_state and st.session_state.changes:
+            current_csv = csvs[st.session_state.csv_counter]
+            st.session_state.df.to_csv(current_csv, index=False)
+            st.session_state.changes = False
 
 @app.command()
 def main(
@@ -117,19 +119,23 @@ def main(
         img_size = st.slider("Image Size", 50, 100, 50, step=5, key="img_size")
         if st.button("Next"):
             save(save_inplace, csvs)
+            st.session_state.changes = False
             st.session_state.csv_counter = min(
                 st.session_state.csv_counter + 1, len(csvs) - 1
             )
             st.experimental_rerun()
         if st.button("Prev"):
             save(save_inplace, csvs)
+            st.session_state.changes = False
             st.session_state.csv_counter = max(st.session_state.csv_counter - 1, 0)
             st.experimental_rerun()
         if st.button("Reset index"):
             save(save_inplace, csvs)
+            st.session_state.changes = False
             st.session_state.csv_counter = 0
             st.experimental_rerun()
         if st.button("Set all to label"):
+            st.session_state.changes = True
             if filter_box != "all":
                 st.session_state.df.loc[st.session_state.df[posebin] == filter_box, posebin] = new_label
             else:
@@ -139,6 +145,7 @@ def main(
         if st.button("Find first have image"):
             save(save_inplace, csvs)
             st.session_state.csv_counter += 1
+            st.session_state.changes = False
             while st.session_state.csv_counter < len(csvs) - 1:
                 current_csv = csvs[st.session_state.csv_counter]
                 df = pd.read_csv(current_csv)
@@ -214,6 +221,7 @@ def main(
 
             clicked = show_grid_of_images(images, colors, img_size)
             if clicked > -1:
+                st.session_state.changes = True
                 clicked_index = filtered_df.iloc[clicked]["index"]
                 st.session_state.df.loc[clicked_index, posebin] = new_label
                 st.experimental_rerun()
