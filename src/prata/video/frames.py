@@ -165,7 +165,7 @@ def zipimages_to_thumbnail(
 ):
     def func(zip_path):
         with zipfile.ZipFile(zip_path, "r") as zip_file:
-            for file_name in tqdm(list(zip_file.namelist())):
+            for file_name in list(zip_file.namelist()):
                 if not file_name.lower().endswith(
                     (".png", ".jpg", ".jpeg", ".bmp", ".gif")
                 ):
