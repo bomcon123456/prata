@@ -83,7 +83,20 @@ def main(
                 "all",
                 "profile_horizontal",
                 "profile_vertical",
+                "profile_left",
+                "profile_right",
                 "frontal",
+                "profile_extreme",
+            ),
+        )
+        new_label = st.sidebar.selectbox(
+            "New Label",
+            (
+                "frontal",
+                "profile_up",
+                "profile_down",
+                "profile_left",
+                "profile_right",
                 "profile_extreme",
             ),
         )
@@ -165,6 +178,8 @@ def main(
                 colors.append(color)
 
             clicked = show_grid_of_images(images, colors, img_size)
+            if clicked > -1:
+                st.markdown(f"Image #{clicked} clicked")
 
 
 # Load the images and display them in a grid
