@@ -1,17 +1,21 @@
-from genericpath import exists
+import base64
 import os
-import cv2
-import numpy as np
 import shutil
 import subprocess
 import sys
+import zipfile
 from enum import Enum
+from io import BytesIO
 from pathlib import Path
-from natsort import natsorted
-import pandas as pd
-from loguru import logger
 
+import cv2
+import numpy as np
+import pandas as pd
 import typer
+from genericpath import exists
+from loguru import logger
+from natsort import natsorted
+from PIL import Image
 from tqdm.rich import tqdm
 
 app = typer.Typer()
@@ -129,6 +133,7 @@ def video2interval(
             # exit()
             subprocess.call(cmd)
 
+
 @app.command()
 def filter_img_by_size(
     input_path: Path = typer.Argument(..., help="input path"),
@@ -142,7 +147,7 @@ def filter_img_by_size(
         if file.suffix.lower() not in exts:
             continue
         img = cv2.imread(file.as_posix())
-        h,w,c = img.shape
+        h, w, c = img.shape
         if h < min_height or w < min_width:
             continue
         p = file.relative_to(input_path)
@@ -150,6 +155,30 @@ def filter_img_by_size(
         op.parent.mkdir(exist_ok=True, parents=True)
         shutil.copy2(file, op)
 
+
+@app.command()
+def zipimages_to_thumbnail(
+    zip_path: Path = typer.Argument(..., help="zip path"),
+    out_path: Path = typer.Argument(..., help="out path"),
+):
+    if zip_path.is_dir():
+        zip_paths = zip_path.rglob("*.zip")
+    else:
+        zip_paths = [zip_path]
+    for zip_path in zip_paths:
+        with zipfile.ZipFile(zip_path, "r") as zip_file:
+            for file_name in zip_file.namelist():
+                if not file_name.lower().endswith(
+                    (".png", ".jpg", ".jpeg", ".bmp", ".gif")
+                ):
+                    continue
+                with zip_file.open(file_name) as my_file:
+                    image_bytes = my_file.read()
+                    with Image.open(BytesIO(image_bytes)) as img:
+                        img.thumbnail((50, 50))
+                        p = out_path / zip_path.stem / Path(file_name).name
+                        p.parent.mkdir(exist_ok=True, parents=True)
+                        img.save(p.as_posix())
 
 
 if __name__ == "__main__":
