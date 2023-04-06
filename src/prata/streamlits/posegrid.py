@@ -68,6 +68,10 @@ def read_img_from_zip(zip_path: Path, fids):
 if "csv_counter" not in st.session_state:
     st.session_state.csv_counter = 0
 
+def save(save_inplace, csvs):
+    if save_inplace and "df" in st.session_state:
+        current_csv = csvs[st.session_state.csv_counter]
+        st.session_state.df.to_csv(current_csv, index=False)
 
 @app.command()
 def main(
@@ -80,6 +84,8 @@ def main(
     csvs = globs(csv_paths, "*.csv")
 
     with st.sidebar:
+        save_inplace = st.checkbox('Save inplace?')
+
         filter_box = st.sidebar.selectbox(
             "Filter",
             (
@@ -110,23 +116,28 @@ def main(
         )
         img_size = st.slider("Image Size", 50, 100, 50, step=5, key="img_size")
         if st.button("Next"):
+            save(save_inplace, csvs)
             st.session_state.csv_counter = min(
                 st.session_state.csv_counter + 1, len(csvs) - 1
             )
             st.experimental_rerun()
         if st.button("Prev"):
+            save(save_inplace, csvs)
             st.session_state.csv_counter = max(st.session_state.csv_counter - 1, 0)
             st.experimental_rerun()
         if st.button("Reset index"):
+            save(save_inplace, csvs)
             st.session_state.csv_counter = 0
             st.experimental_rerun()
         if st.button("Set all to label"):
+            save(save_inplace, csvs)
             if filter_box != "all":
                 st.session_state.df.loc[st.session_state.df[posebin] == filter_box, posebin] = new_label
             else:
                 st.session_state.df.loc[:, posebin] = new_label
             st.experimental_rerun()
         if st.button("Find first have image"):
+            save(save_inplace, csvs)
             st.session_state.csv_counter += 1
             while st.session_state.csv_counter < len(csvs) - 1:
                 current_csv = csvs[st.session_state.csv_counter]
