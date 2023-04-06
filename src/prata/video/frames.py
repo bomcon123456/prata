@@ -162,7 +162,7 @@ def zipimages_to_thumbnail(
     out_path: Path = typer.Argument(..., help="out path"),
 ):
     if zip_path.is_dir():
-        zip_paths = zip_path.rglob("*.zip")
+        zip_paths = list(zip_path.rglob("*.zip"))
     else:
         zip_paths = [zip_path]
     pbar = tqdm(zip_paths)
