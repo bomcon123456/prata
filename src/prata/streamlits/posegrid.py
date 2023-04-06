@@ -33,6 +33,7 @@ def bin_to_color(bin):
         "profile_up": "yellow",
         "profile_down": "blue",
         "profile_extreme": "purple",
+        "confused": "orange"
     }
     return d[bin]
 
@@ -87,6 +88,7 @@ def main(
                 "profile_right",
                 "frontal",
                 "profile_extreme",
+                "confused"
             ),
         )
         new_label = st.sidebar.selectbox(
