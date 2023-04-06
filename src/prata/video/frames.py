@@ -7,6 +7,7 @@ import zipfile
 from enum import Enum
 from io import BytesIO
 from pathlib import Path
+import concurrent.futures
 
 import cv2
 import numpy as np
@@ -160,14 +161,9 @@ def filter_img_by_size(
 def zipimages_to_thumbnail(
     zip_path: Path = typer.Argument(..., help="zip path"),
     out_path: Path = typer.Argument(..., help="out path"),
+    workers: int = typer.Option(8, help="nworkers"),
 ):
-    if zip_path.is_dir():
-        zip_paths = list(zip_path.rglob("*.zip"))
-    else:
-        zip_paths = [zip_path]
-    pbar = tqdm(zip_paths)
-    for zip_path in pbar:
-        pbar.set_description(f"{zip_path.name}")
+    def func(zip_path):
         with zipfile.ZipFile(zip_path, "r") as zip_file:
             for file_name in tqdm(list(zip_file.namelist())):
                 if not file_name.lower().endswith(
@@ -181,6 +177,19 @@ def zipimages_to_thumbnail(
                         p = out_path / zip_path.stem / (Path(file_name).stem + ".jpg")
                         p.parent.mkdir(exist_ok=True, parents=True)
                         img.save(p.as_posix())
+
+    if zip_path.is_dir():
+        zip_paths = list(zip_path.rglob("*.zip"))
+    else:
+        zip_paths = [zip_path]
+    pbar = tqdm(zip_paths)
+
+    pool = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
+    results = []
+    for result in tqdm(
+        pool.map(func, zip_paths), total=len(zip_paths)
+    ):
+        results.append(result)
 
 
 if __name__ == "__main__":
