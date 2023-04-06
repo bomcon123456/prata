@@ -114,6 +114,9 @@ def main(
         if st.button("Prev"):
             st.session_state.csv_counter = max(st.session_state.csv_counter - 1, 0)
             st.experimental_rerun()
+        if st.button("Reset index"):
+            st.session_state.csv_counter = 0
+            st.experimental_rerun()
         if st.button("Find first have image"):
             st.session_state.csv_counter += 1
             while st.session_state.csv_counter < len(csvs) - 1:
@@ -160,18 +163,29 @@ def main(
                 if filter_box == "profile_horizontal":
                     if d["hardbin"] in ["profile_left", "profile_right"]:
                         bin = d["hardbin"]
-                    l = [d["synergy_bin"], d["poseanh_bin"]]
-                    if isinstance(d["mhp_bin"], float) and not math.isnan(d["mhp_bin"]):
-                        l.append(d["mhp_bin"])
-                    bin = Counter(l).most_common(1)[0][0]
+                    l = [d["synergy_yaw"], d["poseanh_yaw"]]
+                    if isinstance(d["mhp_yaw"], float) and not math.isnan(d["mhp_yaw"]):
+                        l.append(d["mhp_yaw"])
+                    is_right = sum([x > 0 for x in l])
+                    is_left = sum([x < 0 for x in l])
+                    if is_right > is_left:
+                        bin = "profile_right"
+                    else:
+                        bin = "profile_left"
 
                 elif filter_box == "profile_vertical":
                     if d["hardbin"] in ["profile_up", "profile_down"]:
                         bin = d["hardbin"]
-                    l = [d["synergy_bin"], d["poseanh_bin"]]
-                    if isinstance(d["mhp_bin"], float) and not math.isnan(d["mhp_bin"]):
-                        l.append(d["mhp_bin"])
-                    bin = Counter(l).most_common(1)[0][0]
+
+                    l = [d["synergy_pitch"], d["poseanh_pitch"]]
+                    if isinstance(d["mhp_pitch"], float) and not math.isnan(d["mhp_pitch"]):
+                        l.append(d["mhp_pitch"])
+                    is_up = sum([x > 0 for x in l])
+                    is_down = sum([x < 0 for x in l])
+                    if is_up > is_down:
+                        bin = "profile_up"
+                    else:
+                        bin = "profile_down"
                 else:
                     bin = d[posebin]
                 color = bin_to_color(bin)
@@ -179,7 +193,10 @@ def main(
 
             clicked = show_grid_of_images(images, colors, img_size)
             if clicked > -1:
-                st.markdown(f"Image #{clicked} clicked")
+                print(dict_df[clicked].index)
+                print(dict_df)
+                print(df[dict_df[clicked].index])
+
 
 
 # Load the images and display them in a grid
