@@ -165,9 +165,11 @@ def zipimages_to_thumbnail(
         zip_paths = zip_path.rglob("*.zip")
     else:
         zip_paths = [zip_path]
-    for zip_path in zip_paths:
+    pbar = tqdm(zip_paths)
+    for zip_path in pbar:
+        pbar.set_description(f"{zip_path.name}")
         with zipfile.ZipFile(zip_path, "r") as zip_file:
-            for file_name in zip_file.namelist():
+            for file_name in tqdm(list(zip_file.namelist())):
                 if not file_name.lower().endswith(
                     (".png", ".jpg", ".jpeg", ".bmp", ".gif")
                 ):
