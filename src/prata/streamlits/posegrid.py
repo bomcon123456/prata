@@ -121,6 +121,9 @@ def main(
         if st.button("Reset index"):
             st.session_state.csv_counter = 0
             st.experimental_rerun()
+        if st.button("Set all to label"):
+            st.session_state.df.loc[st.session_state.csv_counter, posebin] = new_label
+            st.experimental_rerun()
         if st.button("Find first have image"):
             st.session_state.csv_counter += 1
             while st.session_state.csv_counter < len(csvs) - 1:
