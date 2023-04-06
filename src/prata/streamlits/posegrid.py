@@ -55,7 +55,7 @@ def read_img_from_zip(zip_path: Path, fids):
             with zip_file.open(file_name) as my_file:
                 image_bytes = my_file.read()
                 with Image.open(BytesIO(image_bytes)) as img:
-                    img.thumbnail((30, 30))
+                    img.thumbnail((50, 50))
                     img_resized_bytes = BytesIO()
                     img.save(img_resized_bytes, format="JPEG")
                     img_base64 = base64.b64encode(img_resized_bytes.getvalue()).decode(
