@@ -327,7 +327,7 @@ def aligned_from_csv(
                     outpath = output_dir / id_name / f"{frame_idx}_{conf_score:.3f}_{counter}.jpg"
                     outpath.parent.mkdir(exist_ok=True, parents=True)
                     while outpath.exists():
-                        outpath = output_dir / id_name / f"{frame_idx}_{counter}.jpg"
+                        outpath = output_dir / id_name / f"{frame_idx}_{conf_score:.3f}_{counter}.jpg"
                         counter += 1
                     cv2.imwrite(outpath.as_posix(), aligned)
                     df.loc[
@@ -342,6 +342,44 @@ def aligned_from_csv(
     df = pd.concat(dfs)
     df.to_csv(output_dir / "aligned.csv", index=False)
 
+@app.command()
+def filter_image_by_name_conf(
+    image_dir: Path = typer.Argument(..., help="image dir"),
+    threshold: float = typer.Option(0.8, help="threshold"),
+):
+    ids = os.listdir(image_dir)
+    total_imgs = 0
+    for id in tqdm(ids):
+        image_basepath = image_dir / id
+        if not image_basepath.is_dir():
+            continue
+        images = os.listdir(image_basepath)
+        for image in images:
+            conf = float(image.split("_")[1])
+            if conf < threshold:
+                os.remove(image_basepath / image)
+        n_images = len(os.listdir(image_basepath))
+        if n_images < 3:
+            shutil.rmtree(image_basepath)
+        else:
+            total_imgs += n_images 
+    print(f"Total image left: {total_imgs}")
+
+@app.command()
+def rename_to_have_conf(
+    image_dir: Path = typer.Argument(..., help="image dir"),
+    csv_path: Path = typer.Argument(..., help="csv path"),
+):
+    df = pd.read_csv(csv_path)
+    df_dict = df.to_dict("records")
+    for i, row in enumerate(tqdm(df_dict)):
+        img_path = Path(row["aligned"])
+        counter = img_path.stem.split("_")[-1]
+        new_name = f"{row['image_id']}_{row['score']:.3f}_{counter}.jpg"
+        shutil.move(image_dir /img_path, image_dir / img_path.parent / new_name)
+        df.iloc[i, df.columns.get_loc("aligned")] = img_path.parent / new_name
+    new_csv_path = csv_path.parent / f"{csv_path.stem}_new.csv"
+    df.to_csv(new_csv_path, index=False)
 
 if __name__ == "__main__":
     app()
