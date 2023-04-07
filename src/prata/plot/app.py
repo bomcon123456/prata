@@ -142,9 +142,11 @@ def plot_facegen_parquet(
 
     df = pd.read_parquet(input_path)
     filtered_by_iqa_df = df[df["iqa"] > iqa_threshold]
-    filtered_by_iqa_df[
-        filtered_by_iqa_df[posebin] not in ["frontal", "confused", "profile_extreme"]
-    ].value_counts().plot.bar(alpha=0.5, figsize=(12, 8))
+    count = filtered_by_iqa_df[posebin].value_counts()
+    print(count)
+    del count["frontal"]
+    print(count)
+    # plot.bar(alpha=0.5, figsize=(12, 8))
 
     plt.title(title)
 
