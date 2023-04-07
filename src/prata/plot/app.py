@@ -148,7 +148,8 @@ def plot_facegen_parquet(
     del count["profile_extreme"]
     del count["profile_vertical"]
     del count["profile_horizontal"]
-    count.plot.bar(alpha=0.5, figsize=(12, 8))
+    ax = count.plot.bar(alpha=0.5, figsize=(12, 8))
+    ax.bar_label(ax.containers[0])
 
     plt.title(title)
 
