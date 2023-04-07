@@ -1,0 +1,307 @@
+{
+  "minio": {
+    "address": "10.111.194.10:9000",
+    "access_key": "z19b0m9gdr5kmbw7qnh35vadx6",
+    "secret_key": "hy7kqdraacfaz8esmcmnrx02pm",
+    "id": "968431187",
+    "bucket": "g3-event-blacklist"
+  },
+  "kafka": {
+    "address": "10.111.194.10:9092",
+    "topic": "DEV_FACE_DETECTED_EVENT",
+    "id": "60f6962a74b1c00024e717f0",
+    "event_topic": "PROD_FACE_DETECTED_EVENT"
+  },
+  "cam_infor": [
+    {
+      "cam_url": "rtsp://admin:14ThuyKhue@192.168.0.105:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "Test_VHM",
+      "cam_id": "AN1_IP16_172.22.120.73_T2_HanhLang_Nhom_10fps.mp4",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "cam_url": "rtsp://admin:14ThuyKhue@192.168.0.107:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "Test_VHM",
+      "cam_id": "AN1_IP16_172.22.120.73_T2_HanhLang_Nhom_10fps.mp4",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "cam_url": "rtsp://admin:14ThuyKhue@192.168.0.109:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "Test_VHM",
+      "cam_id": "AN1_IP16_172.22.120.73_T2_HanhLang_Nhom_10fps.mp4",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "cam_url": "rtsp://admin:14ThuyKhue@192.168.0.108:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "Test_VHM",
+      "cam_id": "AN1_IP16_172.22.120.73_T2_HanhLang_Nhom_10fps.mp4",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "cam_url": "rtsp://admin:14ThuyKhue@192.168.0.110:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "Test_VHM",
+      "cam_id": "AN1_IP16_172.22.120.73_T2_HanhLang_Nhom_10fps.mp4",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "cam_url": "rtsp://admin:14ThuyKhue@192.168.0.111:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "Test_VHM",
+      "cam_id": "AN1_IP16_172.22.120.73_T2_HanhLang_Nhom_10fps.mp4",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "cam_url": "rtsp://admin:14ThuyKhue@192.168.0.112:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "Test_VHM",
+      "cam_id": "AN1_IP16_172.22.120.73_T2_HanhLang_Nhom_10fps.mp4",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "cam_url": "rtsp://admin:14ThuyKhue@192.168.0.118:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "Test_VHM",
+      "cam_id": "AN1_IP16_172.22.120.73_T2_HanhLang_Nhom_10fps.mp4",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "cam_url": "rtsp://admin:14ThuyKhue@192.168.0.115:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "Test_VHM",
+      "cam_id": "AN1_IP16_172.22.120.73_T2_HanhLang_Nhom_10fps.mp4",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "cam_url": "rtsp://admin:14ThuyKhue@192.168.0.116:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "Test_VHM",
+      "cam_id": "AN1_IP16_172.22.120.73_T2_HanhLang_Nhom_10fps.mp4",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "cam_url": "rtsp://admin:14ThuyKhue@192.168.0.117:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "Test_VHM",
+      "cam_id": "AN1_IP16_172.22.120.73_T2_HanhLang_Nhom_10fps.mp4",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "cam_url": "rtsp://admin:14ThuyKhue@192.168.0.124:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "Test_VHM",
+      "cam_id": "AN1_IP16_172.22.120.73_T2_HanhLang_Nhom_10fps.mp4",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "cam_url": "rtsp://admin:14ThuyKhue@192.168.0.125:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "Test_VHM",
+      "cam_id": "AN1_IP16_172.22.120.73_T2_HanhLang_Nhom_10fps.mp4",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "cam_url": "rtsp://admin:14ThuyKhue@192.168.0.126:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "Test_VHM",
+      "cam_id": "AN1_IP16_172.22.120.73_T2_HanhLang_Nhom_10fps.mp4",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "name": "S1_03_TM1_PTTM_NK1",
+      "url": "rtsp://admin:123456aA@172.22.10.203:554/Streaming/Channels/101",
+      "urlNVR": "rtsp://admin:qksYnVL5Su@172.22.25.26:1200/Streaming/Channels/2101",
+      "cam_url": "rtsp://admin:123456aA@172.22.10.203:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "BLACKLIST@S1_03_TM1_PTTM_NK1",
+      "cam_id": "BLACKLIST@S1_03_TM1_PTTM_NK1",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "name": "S1_03_TM2_PTTM_NK1",
+      "url": "rtsp://admin:123456aA@172.22.10.209:554/Streaming/Channels/101",
+      "urlNVR": "rtsp://admin:qksYnVL5Su@172.22.25.26:1200/Streaming/Channels/2101",
+      "cam_url": "rtsp://admin:123456aA@172.22.10.209:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "BLACKLIST@S1_03_TM2_PTTM_NK1",
+      "cam_id": "BLACKLIST@S1_03_TM2_PTTM_NK1",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "name": "S1_03_TM3_PTTM_NK1",
+      "url": "rtsp://admin:123456aA@172.22.10.215:554/Streaming/Channels/101",
+      "urlNVR": "rtsp://admin:qksYnVL5Su@172.22.25.26:1200/Streaming/Channels/2101",
+      "cam_url": "rtsp://admin:123456aA@172.22.10.215:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "BLACKLIST@S1_03_TM3_PTTM_NK1",
+      "cam_id": "BLACKLIST@S1_03_TM3_PTTM_NK1",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "name": "S1_03_TM4_PTTM_NK1",
+      "url": "rtsp://admin:123456aA@172.22.10.221:554/Streaming/Channels/101",
+      "urlNVR": "rtsp://admin:qksYnVL5Su@172.22.25.26:1200/Streaming/Channels/2101",
+      "cam_url": "rtsp://admin:123456aA@172.22.10.221:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "BLACKLIST@S1_03_TM4_PTTM_NK1",
+      "cam_id": "BLACKLIST@S1_03_TM4_PTTM_NK1",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "name": "S1_03_T1_AN1",
+      "url": "rtsp://admin:123456aA@172.22.10.19:554/Streaming/Channels/101",
+      "urlNVR": "rtsp://admin:qksYnVL5Su@172.22.25.26:1200/Streaming/Channels/2101",
+      "cam_url": "rtsp://admin:123456aA@172.22.10.19:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "BLACKLIST@S1_03_T1_AN1",
+      "cam_id": "BLACKLIST@S1_03_T1_AN1",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "name": "S1_03_T1_AN2",
+      "url": "rtsp://admin:123456aA@172.22.10.20:554/Streaming/Channels/101",
+      "urlNVR": "rtsp://admin:qksYnVL5Su@172.22.25.26:1200/Streaming/Channels/2101",
+      "cam_url": "rtsp://admin:123456aA@172.22.10.20:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "BLACKLIST@S1_03_T1_AN2",
+      "cam_id": "BLACKLIST@S1_03_T1_AN2",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "name": "S1_03_T1_AN7",
+      "url": "rtsp://admin:123456aA@172.22.10.25:554/Streaming/Channels/101",
+      "urlNVR": "rtsp://admin:qksYnVL5Su@172.22.25.26:1200/Streaming/Channels/2101",
+      "cam_url": "rtsp://admin:123456aA@172.22.10.25:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "BLACKLIST@S1_03_T1_AN7",
+      "cam_id": "BLACKLIST@S1_03_T1_AN7",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "name": "S1_03_T1_NK",
+      "url": "rtsp://admin:123456aA@172.22.10.26:554/Streaming/Channels/101",
+      "urlNVR": "rtsp://admin:qksYnVL5Su@172.22.25.26:1200/Streaming/Channels/2101",
+      "cam_url": "rtsp://admin:123456aA@172.22.10.26:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "BLACKLIST@S1_03_T1_NK",
+      "cam_id": "BLACKLIST@S1_03_T1_NK",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "name": "S1_06_T1_ANTT1",
+      "url": "rtsp://admin:123456aA@172.22.2.13:554/Streaming/Channels/101",
+      "urlNVR": "rtsp://admin:qksYnVL5Su@172.22.25.26:1200/Streaming/Channels/2101",
+      "cam_url": "rtsp://admin:123456aA@172.22.2.13:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "BLACKLIST@S1_06_T1_ANTT1",
+      "cam_id": "BLACKLIST@S1_06_T1_ANTT1",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "name": "S1_06_T1_ANTT2",
+      "url": "rtsp://admin:123456aA@172.22.2.14:554/Streaming/Channels/101",
+      "urlNVR": "rtsp://admin:qksYnVL5Su@172.22.25.26:1200/Streaming/Channels/2101",
+      "cam_url": "rtsp://admin:123456aA@172.22.2.14:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "BLACKLIST@S1_06_T1_ANTT2",
+      "cam_id": "BLACKLIST@S1_06_T1_ANTT2",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "name": "S1_06_T1_NK",
+      "url": "rtsp://admin:123456aA@172.22.2.21:554/Streaming/Channels/101",
+      "urlNVR": "rtsp://admin:qksYnVL5Su@172.22.25.26:1200/Streaming/Channels/2101",
+      "cam_url": "rtsp://admin:123456aA@172.22.2.21:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "BLACKLIST@S1_06_T1_NK",
+      "cam_id": "BLACKLIST@S1_06_T1_NK",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "name": "S1_06_TM1_PTTM_NK1",
+      "url": "rtsp://admin:123456aA@172.22.2.191:554/Streaming/Channels/101",
+      "urlNVR": "rtsp://admin:qksYnVL5Su@172.22.25.26:1200/Streaming/Channels/2101",
+      "cam_url": "rtsp://admin:123456aA@172.22.2.191:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "BLACKLIST@S1_06_TM1_PTTM_NK1",
+      "cam_id": "BLACKLIST@S1_06_TM1_PTTM_NK1",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "name": "S1_06_TM2_PTTM_NK1",
+      "url": "rtsp://admin:123456aA@172.22.2.197:554/Streaming/Channels/101",
+      "urlNVR": "rtsp://admin:qksYnVL5Su@172.22.25.26:1200/Streaming/Channels/2101",
+      "cam_url": "rtsp://admin:123456aA@172.22.2.197:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "BLACKLIST@S1_06_TM2_PTTM_NK1",
+      "cam_id": "BLACKLIST@S1_06_TM2_PTTM_NK1",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "name": "S1_06_TM3_PTTM_NK1",
+      "url": "rtsp://admin:123456aA@172.22.2.203:554/Streaming/Channels/101",
+      "urlNVR": "rtsp://admin:qksYnVL5Su@172.22.25.26:1200/Streaming/Channels/2101",
+      "cam_url": "rtsp://admin:123456aA@172.22.2.203:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "BLACKLIST@S1_06_TM3_PTTM_NK1",
+      "cam_id": "BLACKLIST@S1_06_TM3_PTTM_NK1",
+      "event_type": "need_to_monitor",
+      "rois": []
+    },
+    {
+      "name": "S1_06_TM4_PTTM_NK1",
+      "url": "rtsp://admin:123456aA@172.22.2.209:554/Streaming/Channels/101",
+      "urlNVR": "rtsp://admin:qksYnVL5Su@172.22.25.26:1200/Streaming/Channels/2101",
+      "cam_url": "rtsp://admin:123456aA@172.22.2.209:554/Streaming/Channels/101",
+      "fps": 10,
+      "cam_name": "BLACKLIST@S1_06_TM4_PTTM_NK1",
+      "cam_id": "BLACKLIST@S1_06_TM4_PTTM_NK1",
+      "event_type": "need_to_monitor",
+      "rois": []
+    }
+  ],
+  "devconfig": {
+    "cms_smc_device_key": "9AbiQHrb7PhOO0XD7xK6ocaIiRzyynw6",
+    "base_url": "host.docker.internal:7899",
+    "cms_path_blacklist": "/api/blacklists/getBlackListsByCE",
+    "cms_path_member": "/api/members/getMembersByCE",
+    "area_id": 0,
+    "deployment_env": "DEV",
+    "event_warning_time": 0,
+    "min_object_size": {
+      "w": 2,
+      "h": 2
+    }
+  }
+}

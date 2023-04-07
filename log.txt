@@ -1,0 +1,2 @@
+/usr/bin/ffmpeg -i /home/termanteus/workspace/kidnap/data/batch1/TMDM/kidnap/00010001381000000.mp4 -tune fastdecode -tune zerolatency -filter:v fps=10 -map 0 -c:v libx264 -crf 18 -c:a copy /home/termanteus/workspace/common/data_scripts/vidh264/00010001381000000.mp4
+00010001381000000:    0%                                                                                      0/1  [ 0:00:00 < -:--:-- , ? it/s ]

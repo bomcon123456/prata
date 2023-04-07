@@ -156,6 +156,7 @@ def plot_facegen_parquet(
     plt.ylabel(ylabel, labelpad=20, weight="bold", size=12)
 
     plt.legend()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(output_path.as_posix())
 
 
