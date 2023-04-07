@@ -134,6 +134,7 @@ def plot_facegen_parquet(
     input_path: Path = typer.Argument(..., help="input path"),
     output_path: Path = typer.Argument(..., help="output path"),
     iqa_threshold: int = typer.Option(60, help="iqa threshold"),
+    posebin: str = typer.Option("softbin", help="bin"),
     xlabel: str = typer.Option("", help="xlabel"),
     ylabel: str = typer.Option("", help="ylabel"),
     title: str = typer.Option("", help="title"),
@@ -143,9 +144,9 @@ def plot_facegen_parquet(
     filtered_by_iqa_df = df[df["iqa"] > iqa_threshold]
     column_names = ["profile_left", "profile_right", "profile_up", "profile_down"]
     for i, column_name in enumerate(column_names):
-        filtered_by_iqa_df[column_name].value_counts().plot.bar(
-            alpha=0.5, label=column_name, figsize=(12, 8)
-        )
+        filtered_by_iqa_df[
+            filtered_by_iqa_df[posebin] == column_name
+        ].value_counts().plot.bar(alpha=0.5, label=column_name, figsize=(12, 8))
 
     plt.title(title)
 
