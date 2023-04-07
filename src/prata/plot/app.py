@@ -139,7 +139,7 @@ def plot_facegen_parquet(
     title: str = typer.Option("", help="title"),
 ):
 
-    df = pd.read_csv(input_path)
+    df = pd.read_parquet(input_path)
     filtered_by_iqa_df = df[df["iqa"] > iqa_threshold & df["iqa"] < 100]["iqa"]
     column_names = ["profile_left", "profile_right", "profile_up", "profile_down"]
     for i, column_name in enumerate(column_names):
