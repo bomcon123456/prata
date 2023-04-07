@@ -140,7 +140,7 @@ def plot_facegen_parquet(
 ):
 
     df = pd.read_parquet(input_path)
-    filtered_by_iqa_df = df[df["iqa"] > iqa_threshold & df["iqa"] < 100]["iqa"]
+    filtered_by_iqa_df = df[df["iqa"] > iqa_threshold]
     column_names = ["profile_left", "profile_right", "profile_up", "profile_down"]
     for i, column_name in enumerate(column_names):
         filtered_by_iqa_df[column_name].value_counts().plot.bar(
