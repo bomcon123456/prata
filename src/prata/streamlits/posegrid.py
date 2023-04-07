@@ -35,7 +35,7 @@ def bin_to_color(bin):
         "profile_extreme": "purple",
         "confused": "orange",
         "profile_horizontal": "cyan",
-        "profile_vertical": "grey"
+        "profile_vertical": "grey",
     }
     return d[bin]
 
@@ -68,12 +68,14 @@ def read_img_from_zip(zip_path: Path, fids):
 if "csv_counter" not in st.session_state:
     st.session_state.csv_counter = 0
 
+
 def save(save_inplace, csvs):
     if save_inplace and "df" in st.session_state:
         if "changes" in st.session_state and st.session_state.changes:
             current_csv = csvs[st.session_state.csv_counter]
             st.session_state.df.to_csv(current_csv, index=False)
             st.session_state.changes = False
+
 
 @app.command()
 def main(
@@ -86,7 +88,7 @@ def main(
     csvs = globs(csv_paths, "*.csv")
 
     with st.sidebar:
-        save_inplace = st.checkbox('Save inplace?')
+        save_inplace = st.checkbox("Save inplace?")
 
         filter_box = st.sidebar.selectbox(
             "Filter",
@@ -96,9 +98,11 @@ def main(
                 "profile_vertical",
                 "profile_left",
                 "profile_right",
+                "profile_up",
+                "profile_down",
                 "frontal",
                 "profile_extreme",
-                "confused"
+                "confused",
             ),
         )
         new_label = st.sidebar.selectbox(
@@ -137,7 +141,9 @@ def main(
         if st.button("Set all to label"):
             st.session_state.changes = True
             if filter_box != "all":
-                st.session_state.df.loc[st.session_state.df[posebin] == filter_box, posebin] = new_label
+                st.session_state.df.loc[
+                    st.session_state.df[posebin] == filter_box, posebin
+                ] = new_label
             else:
                 st.session_state.df.loc[:, posebin] = new_label
             save(save_inplace, csvs)
@@ -206,7 +212,9 @@ def main(
                         bin = d["hardbin"]
 
                     l = [-d["synergy_pitch"], d["poseanh_pitch"]]
-                    if isinstance(d["mhp_pitch"], float) and not math.isnan(d["mhp_pitch"]):
+                    if isinstance(d["mhp_pitch"], float) and not math.isnan(
+                        d["mhp_pitch"]
+                    ):
                         l.append(d["mhp_pitch"])
                     is_up = sum([x > 0 for x in l])
                     is_down = sum([x < 0 for x in l])
@@ -225,7 +233,6 @@ def main(
                 clicked_index = filtered_df.iloc[clicked]["index"]
                 st.session_state.df.loc[clicked_index, posebin] = new_label
                 st.experimental_rerun()
-
 
 
 # Load the images and display them in a grid
