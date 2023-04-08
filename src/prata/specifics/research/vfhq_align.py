@@ -57,8 +57,10 @@ def aligner(
                         / f"{row.Index}_ypr{yaw}_{pitch}_{roll}_{softbin}.png"
                     )
                     cv2.imwrite(img_outpath, img)
+                    df.loc[row.Index, "aligned_path"] = img_outpath.relative_to(output_basepath).as_posix()
 
         dataset_wrapper.zipfile.close()
+        df.to_csv((output_basepath / csv_path.name).as_posix(), index=False)
 
     paths = []
     if zippath.is_file():
