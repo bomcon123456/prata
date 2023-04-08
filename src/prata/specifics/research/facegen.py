@@ -21,7 +21,7 @@ from tqdm import tqdm
 
 from .helper import *
 from .metadata import *
-from vfhq_align import aligner
+from .vfhq_align import aligner
 
 app = typer.Typer()
 
