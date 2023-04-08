@@ -29,7 +29,7 @@ def aligner(
     workers: int = typer.Option(16, help="num workers"),
 ):
     def func(zip_path: Path):
-        id_name = zippath.stem
+        id_name = zip_path.stem
         csv_path = csv_dir / f"{id_name}.csv"
         curid_outpath = output_basepath / id_name
         curid_outpath.mkdir(exist_ok=True, parents=True)
@@ -57,7 +57,9 @@ def aligner(
                         / f"{row.Index}_ypr{yaw}_{pitch}_{roll}_{softbin}.png"
                     )
                     cv2.imwrite(img_outpath, img)
-                    df.loc[row.Index, "aligned_path"] = img_outpath.relative_to(output_basepath).as_posix()
+                    df.loc[row.Index, "aligned_path"] = img_outpath.relative_to(
+                        output_basepath
+                    ).as_posix()
 
         dataset_wrapper.zipfile.close()
         df.to_csv((output_basepath / csv_path.name).as_posix(), index=False)
@@ -70,6 +72,7 @@ def aligner(
             with open(zippath, "r") as f:
                 lines = f.readlines()
                 paths = list(map(lambda x: Path(x.strip()), lines))
+                print(path[:5])
     elif zippath.is_dir():
         paths = list(zippath.glob("*.zip"))
 
