@@ -21,6 +21,7 @@ from tqdm import tqdm
 
 from .helper import *
 from .metadata import *
+from vfhq_align import aligner
 
 app = typer.Typer()
 
@@ -446,15 +447,8 @@ def binning(
                 else:
                     hard_bin = "confused"
 
-                is_profile = all(
-                    [
-                        x.split("_")[0] == "profile"
-                        for x in candidates
-                    ]
-                )
-                is_frontal = all(
-                    [x == "frontal" for x in candidates]
-                )
+                is_profile = all([x.split("_")[0] == "profile" for x in candidates])
+                is_frontal = all([x == "frontal" for x in candidates])
                 counter = Counter(candidates)
                 majority_vote = counter.most_common(1)[0]
                 if majority_vote[1] > 1:
@@ -492,6 +486,17 @@ def binning(
 
     print(f"Hard: {hardcounter}")
     print(f"Soft: {softcounter}")
+
+
+@app.command()
+def vfhq_align(
+    zippath: Path = typer.Argument(..., help="zippath"),
+    csv_dir: Path = typer.Argument(..., help="csv_dir"),
+    output_basepath: Path = typer.Argument(..., help="Path to data.yaml"),
+    workers: int = typer.Option(16, help="num workers"),
+):
+    aligner(zippath, csv_dir, output_basepath, workers)
+
 
 if __name__ == "__main__":
     app()

@@ -13,8 +13,6 @@ import pandas as pd
 from face_align import image_align_5
 from zipdataset import ImageZipDataset
 
-app = typer.Typer()
-
 
 def get_pose(row: tuple):
     if math.isnan(row.mhp_yaw):
@@ -24,8 +22,7 @@ def get_pose(row: tuple):
     return int(y), int(p), int(r)
 
 
-@app.command()
-def main(
+def aligner(
     zippath: Path = typer.Argument(..., help="zippath"),
     csv_dir: Path = typer.Argument(..., help="csv_dir"),
     output_basepath: Path = typer.Argument(..., help="Path to data.yaml"),
@@ -78,7 +75,3 @@ def main(
     results = []
     for result in tqdm(pool.map(func, paths), total=len(paths)):
         results.append(result)
-
-
-if __name__ == "__main__":
-    app()
