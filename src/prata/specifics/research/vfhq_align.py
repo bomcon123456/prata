@@ -34,7 +34,7 @@ def aligner(
         curid_outpath = output_basepath / id_name
         curid_outpath.mkdir(exist_ok=True, parents=True)
 
-        assert csv_path.exists()
+        assert csv_path.exists(), f"csv path: {csv_path} is not existed!"
         df = pd.read_csv(csv_path)
         parent_path = output_basepath / zippath.stem
         parent_path.mkdir(exist_ok=True, parents=True)
@@ -46,7 +46,7 @@ def aligner(
                 single_path = Path(single_path)
                 frameid = single_path.stem.lstrip("0")
                 rows = df[df["frameid"] == frameid]
-                assert len(rows) > 0
+                assert len(rows) > 0, f"Row is empty for {csv_path}, frameid={frameid}"
                 for row in rows.itertuples():
                     yaw, pitch, roll = get_pose(row)
                     softbin = row.softbin
@@ -71,7 +71,7 @@ def aligner(
                 lines = f.readlines()
                 paths = list(map(lambda x: Path(x.strip()), lines))
     elif zippath.is_dir():
-        paths = zippath.glob("*.zip")
+        paths = list(zippath.glob("*.zip"))
 
     pool = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
     results = []
