@@ -9,7 +9,7 @@ from PIL import Image
 
 
 class _ImageZipDataset(torch.utils.data.Dataset):
-    def __init__(self, zip_file, samples, imgsize, stride, auto):
+    def __init__(self, zip_file, samples):
         self.zip_file = zip_file
         self.samples = samples
 
@@ -24,7 +24,7 @@ class _ImageZipDataset(torch.utils.data.Dataset):
         path, target = self.samples[index]
 
         with self.zip_file.open(path) as f:
-            img0 = np.array(Image.open(f), dtype=np.uint8)[:, :, -1]  # RGB -> BGR
+            img0 = np.array(Image.open(f), dtype=np.uint8)[:, :, ::-1]  # RGB -> BGR
 
         return path, img0
 
