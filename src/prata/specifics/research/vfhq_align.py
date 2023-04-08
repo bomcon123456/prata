@@ -10,8 +10,8 @@ import cv2
 from tqdm.rich import tqdm
 import pandas as pd
 
-from face_align import image_align_5
-from zipdataset import ImageZipDataset
+from .face_align import image_align_5
+from .zipdataset import ImageZipDataset
 
 
 def get_pose(row: tuple):
