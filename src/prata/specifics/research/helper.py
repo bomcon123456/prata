@@ -273,7 +273,6 @@ def bin_a_pose(yaw, pitch, roll):
 
 def get_pose_from_row(row):
     d = defaultdict(dict)
-    print(row)
     for p in ["yaw", "pitch", "roll"]:
         for m in ["mhp_", "synergy_", "poseanh_"]:
             d[p][f"{m}{p}"] = row[f"{m}{p}"]
