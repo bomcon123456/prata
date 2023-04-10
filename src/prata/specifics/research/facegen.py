@@ -501,9 +501,9 @@ def vfhq_align(
 
 @app.command()
 def poseizer_stepbin(
-        parquet_path: Path = typer.Argument(..., help="parquet path")
-        outparquet_path: Path = typer.Argument(..., help="outparquet path")
-    ):
+    parquet_path: Path = typer.Argument(..., help="parquet path"),
+    outparquet_path: Path = typer.Argument(..., help="outparquet path"),
+):
     def func(row):
         posedict = get_pose_from_row(row)
         softbin = row["softbin"]

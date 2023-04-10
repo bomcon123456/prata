@@ -4,6 +4,7 @@ import zipfile
 from pathlib import Path
 from zipfile import ZipFile
 
+import pandas as pd
 import typer
 from natsort import natsorted
 from tqdm.rich import tqdm
@@ -62,11 +63,12 @@ def move_file_keep_parent_name(
         assert not new_path.exists(), f"{new_path} existed."
         shutil.copy2(file, new_path)
 
+
 @app.command()
 def move_all_file_to_folder(
     input_path: Path = typer.Argument(..., help="input path"),
     output_path: Path = typer.Argument(..., help="Output path"),
-    check_exists: bool = typer.Option(False, help="chekc if exists")
+    check_exists: bool = typer.Option(False, help="chekc if exists"),
 ):
     files = list(input_path.rglob("*"))
     for file in tqdm(files):
@@ -74,6 +76,21 @@ def move_all_file_to_folder(
         if check_exists and op.exists():
             raise Exception(f"{file} is existed")
         shutil.move(file, op)
+
+
+@app.command()
+def csvs_to_parquet(
+    csv_dir: Path = typer.Argument(..., help="input csvs"),
+    output_path: Path = typer.Argument(..., help="output path"),
+):
+    csv_paths = csv_dir.rglob("*.csv")
+    dfs = []
+    for csv_path in csv_paths:
+        df = pd.read_csv(csv_path)
+        dfs.append(df)
+    df = pd.concat(dfs)
+    output_path.parent.mkdir(exist_ok=True, parents=True)
+    df.to_parquet(output_path.as_posix())
 
 
 if __name__ == "__main__":
