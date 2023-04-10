@@ -1,5 +1,6 @@
 import concurrent.futures
 import json
+import math
 import os
 import re
 import shutil
@@ -517,11 +518,12 @@ def poseizer_stepbin(
             final_val = 0
             for v in vals:
                 final_val += abs(v)
-            final_val /= len(final_val)
+            final_val /= len(vals)
             ranges = range(40, 91, 10)
             for i, th in enumerate(ranges):
                 if final_val < th:
                     label = f"{ranges[i-1]}_{ranges[i]}"
+                    break
             if final_val > th:
                 label = f"{ranges[-2]}_{ranges[-1]}"
 
@@ -531,11 +533,11 @@ def poseizer_stepbin(
             label = f"{direction}_{label}"
         else:
             label = "confused"
-        row["smallbin"] = label
+        return label
 
     pandarallel.initialize(progress_bar=True)
     df = pd.read_parquet(parquet_path.as_posix())
-    df.parallel_apply(func)
+    df["smallbin"] = df.parallel_apply(func, axis=1)
     outparquet_path.parent.mkdir(exist_ok=True, parents=True)
     df.to_parquet(outparquet_path, index=False)
 
