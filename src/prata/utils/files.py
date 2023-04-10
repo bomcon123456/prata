@@ -89,6 +89,7 @@ def csvs_to_parquet(
         df = pd.read_csv(csv_path)
         dfs.append(df)
     df = pd.concat(dfs)
+    del df["idx"]
     output_path.parent.mkdir(exist_ok=True, parents=True)
     df.to_parquet(output_path.as_posix())
 
