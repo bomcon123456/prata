@@ -1,23 +1,23 @@
+import concurrent.futures
 import json
-from collections import Counter
 import os
 import re
 import shutil
-from collections import defaultdict
+from collections import Counter, defaultdict
 from enum import Enum, auto
 from pathlib import Path
 from typing import List, Optional
-import concurrent.futures
 
 import matplotlib.pyplot as plt
-from rich import print
 import numpy as np
 import pandas as pd
 import typer
 from cython_bbox import bbox_overlaps as bbox_ious
 from natsort import natsorted
 from pydantic import BaseModel
+from rich import print
 from tqdm import tqdm
+from pandarallel import pandarallel
 
 from .helper import *
 from .metadata import *
@@ -481,6 +481,7 @@ def binning(
             df.loc[row_idx, "softbin"] = soft_bin
             hardcounter[hard_bin] += 1
             softcounter[soft_bin] += 1
+
         outputcsvpath = output_path / csv_path.name
         df.to_csv(outputcsvpath.as_posix(), index=False)
 
@@ -496,6 +497,47 @@ def vfhq_align(
     workers: int = typer.Option(16, help="num workers"),
 ):
     aligner(zippath, csv_dir, output_basepath, workers)
+
+
+@app.command()
+def poseizer_stepbin(
+        parquet_path: Path = typer.Argument(..., help="parquet path")
+        outparquet_path: Path = typer.Argument(..., help="outparquet path")
+    ):
+    def func(row):
+        posedict = get_pose_from_row(row)
+        softbin = row["softbin"]
+        vals = None
+        if softbin in ["profile_left", "profile_right"]:
+            vals = list(posedict["yaw"].values())
+        elif softbin in ["profile_up", "profile_down"]:
+            vals = list(posedict["pitch"].values())
+        if vals is not None:
+            vals = list(filter(lambda x: not math.isnan(x), vals))
+            final_val = 0
+            for v in vals:
+                final_val += abs(v)
+            final_val /= len(final_val)
+            ranges = range(40, 91, 10)
+            for i, th in enumerate(ranges):
+                if final_val < th:
+                    label = f"{ranges[i-1]}_{ranges[i]}"
+            if final_val > th:
+                label = f"{ranges[-2]}_{ranges[-1]}"
+
+            if "left" or "up" in softbin:
+                final_val = -final_val
+            direction = softbin.split("_")[-1]
+            label = f"{direction}_{label}"
+        else:
+            label = "confused"
+        row["smallbin"] = label
+
+    pandarallel.initialize(progress_bar=True)
+    df = pd.read_parquet(parquet_path.as_posix())
+    df.parallel_apply(func)
+    outparquet_path.parent.mkdir(exist_ok=True, parents=True)
+    df.to_parquet(outparquet_path, index=False)
 
 
 if __name__ == "__main__":

@@ -1,10 +1,10 @@
 import os
-from zipfile import ZipFile
 from contextlib import contextmanager
 from pathlib import Path
+from zipfile import ZipFile
 
-import torch
 import numpy as np
+import torch
 from PIL import Image
 
 

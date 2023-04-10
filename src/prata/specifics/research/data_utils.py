@@ -1,6 +1,8 @@
-from pathlib import Path
 import shutil
+from pathlib import Path
+
 from tqdm import tqdm
+
 
 def oneclassify_onefolder(input_path:Path, output_path: Path):
     files = list(input_path.rglob("*"))

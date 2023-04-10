@@ -1,15 +1,18 @@
-import os, sys, glob
-import numpy as np
-import math
-from tqdm import tqdm
-import cv2
-import face_alignment
-from skimage import io
 import argparse
-import PIL.Image
-from multiprocessing import Pool, cpu_count
+import glob
+import math
+import os
+import sys
 from math import ceil
+from multiprocessing import Pool, cpu_count
+
+import cv2
 import face_align
+import face_alignment
+import numpy as np
+import PIL.Image
+from skimage import io
+from tqdm import tqdm
 
 
 def parse_args():

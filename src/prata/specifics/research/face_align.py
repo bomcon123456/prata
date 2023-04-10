@@ -1,8 +1,9 @@
-import numpy as np
-import scipy.ndimage
 import os
-import PIL.Image
+
 import cv2
+import numpy as np
+import PIL.Image
+import scipy.ndimage
 
 
 def adjust_coordinate(coord, new_shape, old_shape):

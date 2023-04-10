@@ -1,12 +1,14 @@
-from pathlib import Path
-import math
-from rich import print
-import numpy as np
 import json
-from cython_bbox import bbox_overlaps as bbox_ious
-import pandas as pd
+import math
+from collections import defaultdict
+from pathlib import Path
 
-__all__ = ["ious", "read_csv_from_txt", "merge3posedf", "mergetxt", "bin_a_pose"]
+import numpy as np
+import pandas as pd
+from cython_bbox import bbox_overlaps as bbox_ious
+from rich import print
+
+__all__ = ["ious", "read_csv_from_txt", "merge3posedf", "mergetxt", "bin_a_pose", "get_pose_from_row"]
 
 
 def ious(atlbrs, btlbrs):
@@ -269,8 +271,15 @@ def bin_a_pose(yaw, pitch, roll):
     return bin
 
 
-if __name__ == "__main__":
+def get_pose_from_row(row):
+    d = defaultdict(dict)
+    for p in ["yaw", "pitch", "roll"]:
+        for m in ["mhp_", "synergy_", "poseanh_"]:
+            d[p][f"{m}{p}"] = row[f"{m}{p}"]
+    return d
 
+
+if __name__ == "__main__":
     # vfhq = read_csv_from_txt(Path("/home/termanteus/workspace/common/data_scripts/vfhqannot.txt"), datatype="gt")
     # poseanh = read_csv_from_txt(Path("/home/termanteus/workspace/common/data_scripts/poseanh.txt"), datatype="poseanh")
     # synergy = read_csv_from_txt(Path("/home/termanteus/workspace/common/data_scripts/synergy.txt"), datatype="synergy")

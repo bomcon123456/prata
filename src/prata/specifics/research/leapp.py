@@ -1,4 +1,5 @@
 import typer
+
 from .facegen import app as FaceGenApp
 
 app = typer.Typer()

@@ -1,14 +1,14 @@
-from pathlib import Path
-import math
-import json
-import typer
-from typing import Dict
 import concurrent.futures
+import json
+import math
+from pathlib import Path
+from typing import Dict
 
-import numpy as np
 import cv2
-from tqdm import tqdm
+import numpy as np
 import pandas as pd
+import typer
+from tqdm import tqdm
 
 from .face_align import image_align_5
 from .zipdataset import ImageZipDataset
