@@ -144,7 +144,8 @@ def vfhq_directmhp_merge(
     directmhp_path: Path = typer.Argument(
         ..., help="directmhp path", exists=True, dir_okay=True
     ),
-    gt_path: Path = typer.Argument(..., help="gt path", exists=True, dir_okay=True),
+    gt_path: Path = typer.Argument(..., help="gt path",
+                                   exists=True, dir_okay=True),
     out_path: Path = typer.Argument(..., help="out path"),
     iou_thresh: float = typer.Option(0.8, help="iou thresh"),
 ):
@@ -193,7 +194,8 @@ def vfhq_directmhp_merge(
                     ltrbs[:, 3] += ltrbs[:, 1]
 
                 ious_ = ious(ltrbs, pred_yprltrbs[:, 3:])
-                max_ids, max_ious = np.argmax(ious_, axis=-1), np.max(ious_, axis=-1)
+                max_ids, max_ious = np.argmax(
+                    ious_, axis=-1), np.max(ious_, axis=-1)
                 for i, (max_idx, max_iou) in enumerate(zip(max_ids, max_ious)):
                     if max_iou > iou_thresh:
                         ref[f"{frameid}_{ids[i]}"] = pred_yprltrbs[max_idx, :3]
@@ -244,8 +246,10 @@ def vfhq_posemerge(
     poseanh_path: Path = typer.Argument(
         ..., help="poseanh path", exists=True, dir_okay=True
     ),
-    iqa_path: Path = typer.Argument(..., help="iqa path", exists=True, dir_okay=True),
-    gt_path: Path = typer.Argument(..., help="gt path", exists=True, dir_okay=True),
+    iqa_path: Path = typer.Argument(..., help="iqa path",
+                                    exists=True, dir_okay=True),
+    gt_path: Path = typer.Argument(..., help="gt path",
+                                   exists=True, dir_okay=True),
     output_path: Path = typer.Argument(..., help="output path"),
 ):
     synergytxts = synergy_path.glob("*.txt")
@@ -307,8 +311,10 @@ def vfhq_posemerge_multithread(
     poseanh_path: Path = typer.Argument(
         ..., help="poseanh path", exists=True, dir_okay=True
     ),
-    iqa_path: Path = typer.Argument(..., help="iqa path", exists=True, dir_okay=True),
-    gt_path: Path = typer.Argument(..., help="gt path", exists=True, dir_okay=True),
+    iqa_path: Path = typer.Argument(..., help="iqa path",
+                                    exists=True, dir_okay=True),
+    gt_path: Path = typer.Argument(..., help="gt path",
+                                   exists=True, dir_okay=True),
     output_path: Path = typer.Argument(..., help="output path"),
     workers: int = typer.Option(8, help="nworkers"),
 ):
@@ -399,7 +405,8 @@ def vfhq_combine_multiid_into_one(
 
 @app.command()
 def binning(
-    csv_path: Path = typer.Argument(..., help="csvpath", exists=True, dir_okay=True),
+    csv_path: Path = typer.Argument(...,
+                                    help="csvpath", exists=True, dir_okay=True),
     output_path: Path = typer.Argument(..., help="outpath"),
 ):
     csv_paths = list(natsorted(csv_path.glob("*.csv")))
@@ -427,7 +434,8 @@ def binning(
             mhp_pitch = row["mhp_pitch"]
             mhp_roll = row["mhp_roll"]
 
-            synergy_bin = bin_a_pose(-synergy_yaw, -synergy_pitch, -synergy_roll)
+            synergy_bin = bin_a_pose(-synergy_yaw, -
+                                     synergy_pitch, -synergy_roll)
             poseanh_bin = bin_a_pose(poseanh_yaw, poseanh_pitch, poseanh_roll)
             mhp_bin = bin_a_pose(mhp_yaw, mhp_pitch, mhp_roll)
             df.loc[row_idx, "synergy_bin"] = synergy_bin
@@ -442,13 +450,15 @@ def binning(
                 hard_bin = "confused"
                 soft_bin = "confused"
             else:
-                is_allequal = all(element == candidates[0] for element in candidates)
+                is_allequal = all(
+                    element == candidates[0] for element in candidates)
                 if is_allequal:
                     hard_bin = candidates[0]
                 else:
                     hard_bin = "confused"
 
-                is_profile = all([x.split("_")[0] == "profile" for x in candidates])
+                is_profile = all(
+                    [x.split("_")[0] == "profile" for x in candidates])
                 is_frontal = all([x == "frontal" for x in candidates])
                 counter = Counter(candidates)
                 majority_vote = counter.most_common(1)[0]
@@ -509,30 +519,54 @@ def poseizer_stepbin(
         posedict = get_pose_from_row(row)
         softbin = row["softbin"]
         vals = None
-        if softbin in ["profile_left", "profile_right"]:
+        if softbin in ["profile_left", "profile_right", "profile_horizontal"]:
             vals = list(posedict["yaw"].values())
-        elif softbin in ["profile_up", "profile_down"]:
+        elif softbin in ["profile_up", "profile_down", "profile_vertical"]:
             vals = list(posedict["pitch"].values())
+        elif softbin == "profile_extreme":
+            vals_y = list(posedict["yaw"].values())
+            vals_p = list(posedict["pitch"].values())
+            vals_y_mean = [abs(x) for x in vals_y if not math.isnan(x)]
+            vals_p_mean = [abs(x) for x in vals_p if not math.isnan(x)]
+            vals_y_mean = sum(vals_y_mean) / len(vals_y_mean)
+            vals_p_mean = sum(vals_p_mean) / len(vals_p_mean)
+            if vals_y_mean > vals_p_mean:
+                vals = vals_y
+                softbin = "profile_horizontal"
+            else:
+                vals = vals_p
+                softbin = "profile_vertical"
         if vals is not None:
             vals = list(filter(lambda x: not math.isnan(x), vals))
             final_val = 0
             for v in vals:
                 final_val += abs(v)
             final_val /= len(vals)
-            ranges = range(40, 91, 10)
-            for i, th in enumerate(ranges):
-                if final_val < th:
-                    label = f"{ranges[i-1]}_{ranges[i]}"
-                    break
-            if final_val > th:
-                label = f"{ranges[-2]}_{ranges[-1]}"
+            ranges = range(30, 91, 10)
+            if final_val < 30:
+                label = "frontal"
+            else:
+                for i, th in enumerate(ranges):
+                    if final_val < th:
+                        label = f"{ranges[i-1]}_{ranges[i]}"
+                        break
+                if final_val > th:
+                    label = f"{ranges[-2]}_{ranges[-1]}"
 
             if "left" or "up" in softbin:
                 final_val = -final_val
-            direction = softbin.split("_")[-1]
-            label = f"{direction}_{label}"
+            if "horizontal" in softbin or "vertical" in softbin:
+                n_positive = sum([x > 0 for x in vals])
+                if n_positive > len(vals) // 2:
+                    direction = "left" if softbin == "profile_horizontal" else "up"
+                else:
+                    direction = "right" if softbin == "profile_horizontal" else "down"
+            else:
+                direction = softbin.split("_")[-1]
+            if label != "frontal":
+                label = f"{direction}_{label}"
         else:
-            label = "confused"
+            label = softbin
         return label
 
     pandarallel.initialize(progress_bar=True)
@@ -540,6 +574,165 @@ def poseizer_stepbin(
     df["smallbin"] = df.parallel_apply(func, axis=1)
     outparquet_path.parent.mkdir(exist_ok=True, parents=True)
     df.to_parquet(outparquet_path, index=False)
+
+
+@app.command()
+def csvs_to_parquet(
+    csv_dir: Path = typer.Argument(..., help="input csvs"),
+    output_path: Path = typer.Argument(..., help="output path"),
+):
+    csv_paths = csv_dir.rglob("*.csv")
+    dfs = []
+    for csv_path in csv_paths:
+        df = pd.read_csv(csv_path)
+        df["video_id"] = csv_path.stem
+        dfs.append(df)
+    df = pd.concat(dfs)
+    del df["idx"]
+    output_path.parent.mkdir(exist_ok=True, parents=True)
+    df.to_parquet(output_path.as_posix())
+
+
+@app.command()
+def sample_per_id(
+    parquet_path: Path = typer.Argument(..., help="parquet path"),
+    image_basedir: Path = typer.Argument(..., help="parquet path"),
+    output_dir: Path = typer.Argument(..., help="outdir for image"),
+    sample_per_pose: int = typer.Option(
+        1, help="pick howmany image per posebin"),
+):
+    df = pd.read_parquet(parquet_path)
+    df = df[df["aligned_path"].notna()]
+    grouped = df.groupby(["video_id"])
+    counter = defaultdict(int)
+    for id_name, id_df in tqdm(grouped):
+        poses = id_df["smallbin"].unique()
+        frontal_idx = 0
+        frontal_df = id_df[id_df["smallbin"] == "frontal"].reset_index()
+        for pose in poses:
+            if "frontal" in pose or "confused" in pose:
+                continue
+            _sample_per_pose = sample_per_pose
+            if len(frontal_df) == 0:
+                _sample_per_pose = sample_per_pose + 1
+            pose_df = id_df[id_df["smallbin"] == pose]["aligned_path"]
+            if _sample_per_pose > len(pose_df):
+                _sample_per_pose = len(pose_df)
+            paths = pose_df.sample(n=_sample_per_pose).tolist()
+            counter[pose] += _sample_per_pose
+            curoutpath = output_dir / id_name / pose
+            curoutpath.mkdir(exist_ok=True, parents=True)
+            if len(frontal_df) != 0:
+                cur_frontal_img = frontal_df.loc[frontal_idx]["aligned_path"]
+                shutil.copy2(image_basedir / cur_frontal_img, curoutpath)
+            for imgpath in paths:
+                shutil.copy2(image_basedir / imgpath, curoutpath)
+            frontal_idx = min(len(frontal_df) - 1, frontal_idx + 1)
+
+    with open(output_dir / "stats.json", "w") as f:
+        json.dump(counter, f, indent=2)
+    print(counter)
+    pass
+
+@app.command()
+def frontal_counter(
+    parquet_path: Path = typer.Argument(..., help="parquet path"),
+):
+    df = pd.read_parquet(parquet_path)
+    df = df[df["aligned_path"].notna()]
+    df.sort_values(by="iqa", ascending=False, inplace=True)
+    grouped = df.groupby(["video_id"])
+    counter = 0
+    for id_name, id_df in tqdm(grouped):
+        poses = id_df["mhp_bin"].unique().tolist()
+        if len(poses) == 1 and poses[0] == "frontal":
+            print(id_name)
+            counter += 1
+    print(f"Total only frontal id: {counter}")
+
+
+@app.command()
+def sample_for_gan(
+    parquet_path: Path = typer.Argument(..., help="parquet path"),
+    image_basedir: Path = typer.Argument(..., help="parquet path"),
+    output_dir: Path = typer.Argument(..., help="outdir for image"),
+    sample_per_id: int = typer.Option(
+        5, help="pick howmany sampes per id (lower bound)"
+    ),
+):
+    output_dir.mkdir(parents=True, exist_ok=True)
+    df = pd.read_parquet(parquet_path)
+    df = df[df["aligned_path"].notna()]
+    df.loc[df["mhp_bin"].isna(), "mhp_bin"] = df[df["mhp_bin"].isna()]["poseanh_bin"]
+    df.sort_values(by="iqa", ascending=False, inplace=True)
+    df["sampled"] = False
+    grouped = df.groupby(["video_id"])
+    counter = defaultdict(int)
+    for id_name, id_df in tqdm(grouped):
+        poses = id_df["softbin"].unique().tolist()
+        left_over_poses = ["profile_horizontal",
+                           "profile_vertical", "confused"]
+        real_leftover_poses = []
+        for lo_pose in left_over_poses:
+            if lo_pose in poses:
+                poses.remove(lo_pose)
+                real_leftover_poses.append(lo_pose)
+        if "frontal" in poses:
+            poses.remove("frontal")
+
+        num_chosen = 0
+        # This means only frontal in this id
+        if len(poses) == 0:
+            continue
+        _sample_per_pose = sample_per_id // len(poses) + 1
+        for pose in poses:
+            pose_df = id_df[id_df["softbin"] == pose]["aligned_path"]
+            if _sample_per_pose > len(pose_df):
+                _sample_per_pose = len(pose_df)
+            paths = pose_df.tolist()[:_sample_per_pose]
+            df.loc[pose_df.index[:_sample_per_pose], "sampled"] = True
+            counter[pose] += _sample_per_pose
+            num_chosen += _sample_per_pose
+            for imgpath in paths:
+                imgpath = Path(imgpath)
+                final_path = output_dir / \
+                    f"{imgpath.parent.name}_{imgpath.name}"
+                _counter = 0
+                while final_path.exists():
+                    final_path = (
+                        output_dir
+                        / f"{imgpath.parent.name}_{imgpath.stem}_{_counter}{imgpath.suffix}"
+                    )
+
+                shutil.copy2(image_basedir / imgpath, final_path)
+                num_chosen += 1
+
+        if num_chosen < sample_per_id and len(real_leftover_poses):
+            _sample_per_pose = num_chosen // len(real_leftover_poses) + 1
+            for pose in real_leftover_poses:
+                pose_df = id_df[id_df["softbin"] == pose]["aligned_path"]
+                if _sample_per_pose > len(pose_df):
+                    _sample_per_pose = len(pose_df)
+                paths = pose_df.tolist()[:_sample_per_pose]
+                counter[pose] += _sample_per_pose
+                num_chosen += _sample_per_pose
+                for imgpath in paths:
+                    imgpath = Path(imgpath)
+                    final_path = output_dir / \
+                        f"{imgpath.parent.name}_{imgpath.name}"
+                    _counter = 0
+                    while final_path.exists():
+                        final_path = (
+                            output_dir
+                            / f"{imgpath.parent.name}_{imgpath.stem}_{_counter}{imgpath.suffix}"
+                        )
+
+                    shutil.copy2(image_basedir / imgpath, final_path)
+
+    with open(output_dir / "stats.json", "w") as f:
+        json.dump(counter, f, indent=2)
+    print(counter)
+    pass
 
 
 if __name__ == "__main__":

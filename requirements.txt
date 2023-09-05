@@ -15,6 +15,6 @@ matplotlib
 xmltodict
 pandas
 seaborn
-fiftyone
+#fiftyone
 pydantic
 loguru
