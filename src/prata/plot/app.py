@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import cv2
 from tqdm import tqdm
-from typing import *
+from typing import Optional, List
 from pathlib import Path
 import os
 
@@ -139,7 +139,6 @@ def plot_facegen_parquet(
     ylabel: str = typer.Option("", help="ylabel"),
     title: str = typer.Option("", help="title"),
 ):
-
     df = pd.read_parquet(input_path)
     filtered_by_iqa_df = df[df["iqa"] > iqa_threshold]
     count = filtered_by_iqa_df[posebin].value_counts()
@@ -161,6 +160,34 @@ def plot_facegen_parquet(
 
     plt.legend()
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(output_path.as_posix())
+
+
+@app.command()
+def box_csv(
+    input_path: Path = typer.Argument(..., help="input path"),
+    output_path: Path = typer.Argument(..., help="output path"),
+    column_names: List[str] = typer.Argument(..., help="column to plot"),
+    xlabel: str = typer.Option("", help="xlabel"),
+    ylabel: str = typer.Option("", help="ylabel"),
+    title: str = typer.Option("", help="title"),
+):
+    df = pd.read_csv(input_path)
+    print(f"Dataframe length: {len(df)}")
+    print(f"Dataframe head\n{df.head()}")
+    print(f"Columns to plot: {column_names}")
+
+    df.boxplot(column=column_names, figsize=(12, 8))
+
+    plt.title(title)
+
+    # Set x-axis label
+    plt.xlabel(xlabel, labelpad=20, weight="bold", size=12)
+
+    # Set y-axis label
+    plt.ylabel(ylabel, labelpad=20, weight="bold", size=12)
+
+    plt.legend()
     plt.savefig(output_path.as_posix())
 
 

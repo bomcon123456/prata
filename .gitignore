@@ -158,3 +158,6 @@ logs/
 *.png
 *.mp4
 *.h264
+assets
+_rsync.yaml
+playground
