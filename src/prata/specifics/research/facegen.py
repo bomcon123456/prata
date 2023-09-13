@@ -393,13 +393,15 @@ def vfhq_combine_multiid_into_one(
     for i, (video_id, csv_path) in enumerate(zip(video_ids, csv_paths)):
         d[video_id].append(csv_path)
 
-    for video_id, csv_paths in tqdm(d.items(), total=len(d)):
+    for user_id, csv_paths in tqdm(d.items(), total=len(d)):
         dfs = []
         for csv_path in csv_paths:
             df = pd.read_csv(csv_path.as_posix())
+            df["user_id"] = user_id
+            df["video_id"] = csv_path.stem
             dfs.append(df)
         result = pd.concat(dfs, ignore_index=True)
-        outcsvpath = out_basepath / (video_id + ".csv")
+        outcsvpath = out_basepath / (user_id + ".csv")
         result.to_csv(outcsvpath.as_posix(), index=False)
 
 
