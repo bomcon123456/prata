@@ -1,0 +1,7 @@
+# filename: _rsync.yaml
+src_dir: "." # local directory
+target_dir:  "superpod:/lustre/scratch/client/vinai/users/trungdt21/workspace/common/prata"
+filter_path: "_rfilter.txt" # path to a txt file using in rsync --exclude-from
+filter_default: true # filter a bunch of non neccessary files
+filter_images: true # filter a bunch of non neccessary files
+override_no_filter: false # if true, sync all
