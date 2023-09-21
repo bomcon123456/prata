@@ -1,6 +1,7 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+.DS_STORE
 *$py.class
 
 # C extensions
@@ -158,3 +159,6 @@ logs/
 *.png
 *.mp4
 *.h264
+assets
+_rsync.yaml
+playground
