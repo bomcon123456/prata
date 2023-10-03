@@ -1,3 +1,5 @@
 *.h264
 *.txt
 0910aligned
+scripts/facedataset/controlnet/*.jsonl
+scripts/facedataset/controlnet/*.json

@@ -1,7 +1,9 @@
 from math import isnan
+from functools import lru_cache
 import pickle
 from functools import partial
 from multiprocessing import Pool
+from re import sub
 import typer
 from collections import defaultdict
 import os
@@ -57,6 +59,26 @@ def get_lmk(lmks5pts, lmks68pts):
             dtype=np.int32,
         ).reshape(5, 2)
     return lmk
+
+
+@lru_cache(2048)
+def cached_listdir(d: Path, image_only=False):
+    fs = os.listdir(d)
+    if image_only:
+        fs = [
+            file
+            for file in fs
+            if file.lower().endswith((".png", ".jpg", ".jpeg", ".gif"))
+        ]
+    return fs
+
+
+@lru_cache(2048)
+def cached_rglob(d: Path, filter_str=None):
+    fs = list(d.rglob("*.[jp][pn]g"))
+    if filter_str is not None and isinstance(filter_str, str):
+        fs = list(filter(lambda x: filter_str in x.resolve().as_posix(), fs))
+    return fs
 
 
 def estimate_norm(lmk, image_size=112, mode="arcface"):
@@ -438,83 +460,245 @@ def main(
         json.dump(id_to_images, f, indent=2)
 
 
-# @app.command()
-#     csv_dir: Path = typer.Argument(
-# def main(
-#         ..., help="Base csv folder", dir_okay=True, exists=True
-#     ),
-#     raw_dir: Path = typer.Argument(
-#         ..., help="Base raw folder", dir_okay=True, exists=True
-#     ),
-#     outdir: Path = typer.Argument(..., help="Output dir"),
-#     sample_per_pair: int = typer.Option(10, help="How much sample per id_bin"),
-# ):
-#     # Same ID
-#     #   Frontal vs Extreme
-#     #   Frontal vs Frontal
-#     #   Extreme vs Extreme
-#     # Different ID
-#     #   Frontal vs Extreme
-#     #   Frontal vs Frontal
-#     #   Extreme vs Extreme
-#     seed = 0
-#     random.seed(seed)
-#     np.random.seed(seed)
-#
-#     pose_dirs = set(os.listdir(csv_dir))
-#     extreme_pose_dirs = pose_dirs.copy()
-#     extreme_pose_dirs.remove("frontal")
-#     frontal_path = csv_dir / "frontal"
-#
-#     name_lookup = {}
-#     counter = 0
-#     pairs = []
-#     for id in os.listdir(frontal_path):
-#         id = Path(id)
-#         csv_path = frontal_path / id
-#         frontal_df = pd.read_csv(csv_path)
-#         id_img_counter = 0
-#         frontal_ids = set()
-#         extreme_ids = set()
-#         for extreme_pose_dir in extreme_pose_dirs:
-#             extreme_csv_path = csv_dir / extreme_pose_dir / id
-#             extreme_df = pd.read_csv(extreme_csv_path)
-#             samples = extreme_df.sample(n=sample_per_pair, random_state=seed)
-#             for extreme_sample in samples.itertuples():
-#                 if id_img_counter > len(frontal_df):
-#                     idx = id_img_counter % len(frontal_df)
-#                 else:
-#                     idx = id_img_counter
-#                 frontal_sample = frontal_df.loc[idx]
-#                 frontal_filename = (
-#                     raw_dir / id.stem / f"{str(frontal_sample.frameid).zfill(8)}.png"
-#                 )
-#                 extreme_filename = (
-#                     raw_dir / id.stem / f"{str(extreme_sample.frameid).zfill(8)}.png"
-#                 )
-#                 frontal_img = cv2.imread(frontal_filename.as_posix())
-#                 frontal_lmk = np.array(frontal_sample.lmks5pts).reshape(2, 5)
-#                 extreme_img = cv2.imread(extreme_filename.as_posix())
-#                 extreme_lmk = np.array(extreme_sample.lmks5pts).reshape(2, 5)
-#                 frontal_aligned = norm_crop(frontal_img, frontal_lmk)
-#                 extreme_aligned = norm_crop(extreme_img, extreme_lmk)
-#                 frontal_out_path = outdir / f"{str(counter).zfill(8)}.png"
-#                 extreme_out_path = outdir / f"{str(counter).zfill(8)}.png"
-#                 cv2.imwrite(frontal_out_path.as_posix(), frontal_aligned)
-#                 cv2.imwrite(extreme_out_path.as_posix(), extreme_aligned)
-#                 frontal_ids.add(frontal_out_path.name)
-#                 extreme_ids.add(extreme_out_path.name)
-#                 pairs.append((frontal_out_path.name, extreme_out_path.name, 1))
-#
-#                 name_lookup[frontal_out_path.name] = frontal_filename.relative_to(
-#                     raw_dir
-#                 ).as_posix()
-#                 name_lookup[extreme_out_path.name] = extreme_filename.relative_to(
-#                     raw_dir
-#                 ).as_posix()
-#
-#                 id_img_counter += 1
-#                 id_img_counter += 1
+@app.command()
+def sample(
+    aligned_dir: Path = typer.Argument(..., help="Aligned dirs"),
+    outpath: Path = typer.Argument(..., help="output txt file path", file_okay=True),
+    n_pairs: int = typer.Option(50000, help="How much pair gonna create"),
+    seed: int = typer.Option(0, help="seed"),
+):
+    random.seed(seed)
+    np.random.seed(seed)
+    ps = {
+        "frontal2frontal": 0.25,
+        "frontal2extreme": 0.25,
+        "extreme2extreme": 0.5,
+    }
+    n_samples_per_bin = {bin: int((n_pairs * p) // 2) for bin, p in ps.items()}
+    for bin, n_samples in n_samples_per_bin.items():
+        print(f"Sample {n_samples} (x2) for bin: {bin}")
+
+    # Get pose info for each ID
+    ids = list(cached_listdir(aligned_dir))
+    ids_with_frontal_only = []
+    ids_with_profile_only = []
+    ids_with_frontal_and_profile = []
+    n_frontal = 0
+    n_extreme = 0
+    for id in tqdm(ids, desc="Counting"):
+        dir_path = aligned_dir / id
+        subdir = list(cached_listdir(dir_path))
+        if len(subdir) == 1:
+            if subdir[0] == "frontal":
+                ids_with_frontal_only.append(id)
+                n_frontal += 1
+            elif "profile" in subdir[0]:
+                ids_with_profile_only.append(id)
+                n_extreme += 1
+        else:
+            if "frontal" in subdir:
+                ids_with_frontal_and_profile.append(id)
+                n_frontal += 1
+            else:
+                ids_with_profile_only.append(id)
+            n_extreme += 1
+
+    print(f"Number of ID has frontal: {n_frontal}")
+    print(f"Number of ID has profile: {n_extreme}")
+    print(f"Number of ID has frontal only: {len(ids_with_frontal_only)}")
+    print(f"Number of ID has profile only: {len(ids_with_profile_only)}")
+    print(f"Number of ID has frontal+profile: {len(ids_with_frontal_and_profile)}")
+    frontal_ids = list(set(ids_with_frontal_only + ids_with_frontal_and_profile))
+    profile_ids = list(set(ids_with_profile_only + ids_with_frontal_and_profile))
+    assert n_frontal == len(frontal_ids)
+    assert n_extreme == len(profile_ids)
+
+    # Sample frontal2frontal same ID
+    frontal2frontal_sameid_pairs = []
+    n_pair_per_id = n_samples_per_bin["frontal2frontal"] // n_frontal
+    n_pair_per_id_remain = n_samples_per_bin["frontal2frontal"] % n_frontal
+    pbar = tqdm(frontal_ids, desc="Sample frontal2frontal sameID")
+    for id in pbar:
+        pbar.set_description(
+            f"[SameID] frontal2frontal: {len(frontal2frontal_sameid_pairs)}/{n_samples_per_bin['frontal2frontal']}"
+        )
+        dir_path = aligned_dir / id / "frontal"
+        image_files = cached_listdir(dir_path, image_only=True)
+
+        n_samples_for_this_id = n_pair_per_id
+        if n_pair_per_id_remain > 0:
+            if n_pair_per_id_remain % 2 == 1:
+                n_samples_for_this_id += 1
+                n_pair_per_id_remain -= 1
+            else:
+                n_samples_for_this_id += n_pair_per_id_remain // 2
+                n_pair_per_id_remain /= 2
+
+        for _ in range(int(n_samples_for_this_id)):
+            # Randomly select two images from the folder
+            pair = random.sample(image_files, 2)
+            # Add the image paths to the list
+            pairpath = list(
+                map(lambda x: (dir_path / x).relative_to(aligned_dir), pair)
+            )
+            frontal2frontal_sameid_pairs.append(pairpath)
+        if len(frontal2frontal_sameid_pairs) >= n_samples_per_bin["frontal2frontal"]:
+            break
+
+    # Sample frontal2extreme same ID
+    f2e_sameid_pairs = []
+    n_pair_per_id = n_samples_per_bin["frontal2extreme"] // len(
+        ids_with_frontal_and_profile
+    )
+    n_pair_per_id_remain = n_samples_per_bin["frontal2extreme"] % len(
+        ids_with_frontal_and_profile
+    )
+    pbar = tqdm(ids_with_frontal_and_profile, desc="Sample frontal2extreme same ID")
+    for id in pbar:
+        pbar.set_description(
+            f"[SameID] frontal2extreme: {len(f2e_sameid_pairs)}/{n_samples_per_bin['frontal2extreme']}"
+        )
+        id_path = aligned_dir / id
+        image_paths = cached_rglob(id_path)
+        frontal_images = list(
+            filter(lambda x: "frontal" in x.resolve().as_posix(), image_paths)
+        )
+        profile_images = list(
+            filter(lambda x: "frontal" not in x.resolve().as_posix(), image_paths)
+        )
+        n_samples_for_this_id = n_pair_per_id
+        if n_pair_per_id_remain > 0:
+            if n_pair_per_id_remain % 2 == 1:
+                n_samples_for_this_id += 1
+                n_pair_per_id_remain -= 1
+            else:
+                n_samples_for_this_id += n_pair_per_id_remain // 2
+                n_pair_per_id_remain /= 2
+
+        for _ in range(int(n_samples_for_this_id)):
+            image1 = random.choice(frontal_images).relative_to(aligned_dir)
+            image2 = random.choice(profile_images).relative_to(aligned_dir)
+            f2e_sameid_pairs.append((image1, image2))
+        if len(f2e_sameid_pairs) >= n_samples_per_bin["frontal2extreme"]:
+            break
+
+    # Sample extreme2extreme same ID
+    e2e_sameid_pairs = []
+    n_pair_per_id = n_samples_per_bin["extreme2extreme"] // len(profile_ids)
+    n_pair_per_id_remain = n_samples_per_bin["extreme2extreme"] % len(profile_ids)
+    pbar = tqdm(profile_ids, desc="Sample extreme2extreme same ID")
+    for id in pbar:
+        pbar.set_description(
+            f"[SameID] extreme2extreme: {len(e2e_sameid_pairs)}/{n_samples_per_bin['extreme2extreme']}"
+        )
+        id_path = aligned_dir / id
+        profile_images = cached_rglob(id_path, filter_str="profile")
+        if len(profile_images) < 2 or len(profile_images) < n_pair_per_id // 2:
+            n_pair_per_id_remain += n_pair_per_id
+            continue
+        n_samples_for_this_id = n_pair_per_id
+        if n_pair_per_id_remain > 0:
+            if n_pair_per_id_remain % 2 == 1:
+                n_samples_for_this_id += 1
+                n_pair_per_id_remain -= 1
+            else:
+                n_samples_for_this_id += n_pair_per_id_remain // 2
+                n_pair_per_id_remain /= 2
+
+        for _ in range(int(n_samples_for_this_id)):
+            # Randomly select two images from the folder
+            pair = random.sample(profile_images, 2)
+            # Add the image paths to the list
+            pairpath = list(
+                map(lambda x: (dir_path / x).relative_to(aligned_dir), pair)
+            )
+            e2e_sameid_pairs.append(pairpath)
+        if len(e2e_sameid_pairs) >= n_samples_per_bin["extreme2extreme"]:
+            break
+
+    # Sample frontal2frontal diff ID
+    f2f_diffid_pairs = []
+    pbar = tqdm(
+        range(n_samples_per_bin["frontal2frontal"]),
+        desc="Sample frontal2frontal diffID",
+    )
+    for _ in pbar:
+        pbar.set_description(
+            f"[DiffID] frontal2frontal: {len(f2f_diffid_pairs)}/{n_samples_per_bin['frontal2frontal']}"
+        )
+        id1, id2 = random.sample(frontal_ids, 2)
+        id1_path = aligned_dir / id1 / "frontal"
+        id2_path = aligned_dir / id2 / "frontal"
+        id1_files = cached_listdir(id1_path, image_only=True)
+        id2_files = cached_listdir(id2_path, image_only=True)
+        pair = random.sample(id1_files, 1) + random.sample(id2_files, 1)
+        pairpath = [
+            (id1_path / pair[0]).relative_to(aligned_dir),
+            (id2_path / pair[1]).relative_to(aligned_dir),
+        ]
+        f2f_diffid_pairs.append(pairpath)
+
+    # Sample frontal2extreme diff ID
+    f2e_diffid_pairs = []
+    pbar = tqdm(
+        range(n_samples_per_bin["frontal2extreme"]),
+        desc="Sample frontal2frontal diffID",
+    )
+    for _ in pbar:
+        pbar.set_description(
+            f"[DiffID] frontal2extreme: {len(f2e_diffid_pairs)}/{n_samples_per_bin['frontal2extreme']}"
+        )
+        id1, id2 = random.sample(frontal_ids, 1) + random.sample(profile_ids, 1)
+        while id1 == id2:
+            id1, id2 = random.sample(frontal_ids, 1) + random.sample(profile_ids, 1)
+        id1_path = aligned_dir / id1 / "frontal"
+        id2_path = aligned_dir / id2
+        id1_files = cached_listdir(id1_path, image_only=True)
+        id2_files = cached_rglob(id2_path, filter_str="profile")
+        pair = random.sample(id1_files, 1) + random.sample(id2_files, 1)
+        pairpath = list(map(lambda x: (id1_path / x).relative_to(aligned_dir), pair))
+        f2e_diffid_pairs.append(pairpath)
+
+    # Sample extreme2extreme diff ID
+    e2e_diffid_pairs = []
+    pbar = tqdm(
+        range(n_samples_per_bin["extreme2extreme"]),
+        desc="Sample frontal2frontal diffID",
+    )
+    for _ in pbar:
+        pbar.set_description(
+            f"[DiffID] extreme2extreme: {len(e2e_diffid_pairs)}/{n_samples_per_bin['extreme2extreme']}"
+        )
+        id1, id2 = random.sample(profile_ids, 2)
+        id1_path = aligned_dir / id1
+        id2_path = aligned_dir / id2
+        id1_files = cached_rglob(id1_path, filter_str="profile")
+        id2_files = cached_rglob(id2_path, filter_str="profile")
+        pair = random.sample(id1_files, 1) + random.sample(id2_files, 1)
+        pairpath = [
+            (id1_path / pair[0]).relative_to(aligned_dir),
+            (id2_path / pair[1]).relative_to(aligned_dir),
+        ]
+        e2e_diffid_pairs.append(pairpath)
+
+    final_pairs = []
+    sets = set()
+    for pair in frontal2frontal_sameid_pairs + f2e_sameid_pairs + e2e_sameid_pairs:
+        pair = tuple(map(str, pair))
+        if pair in sets:
+            continue
+        sets.add(pair)
+        final_pairs.append(f"{pair[0]}\t{pair[1]}\t1")
+    for pair in f2f_diffid_pairs + f2e_diffid_pairs + e2e_diffid_pairs:
+        pair = tuple(map(str, pair))
+        if pair in sets:
+            continue
+        sets.add(pair)
+        final_pairs.append(f"{pair[0]}\t{pair[1]}\t0")
+
+    outpath.parent.mkdir(parents=True, exist_ok=True)
+    with open(outpath, "w") as f:
+        f.write("\n".join(final_pairs))
 
 
 if __name__ == "__main__":
