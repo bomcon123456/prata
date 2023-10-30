@@ -12,6 +12,7 @@ from pathlib import Path
 from tqdm import tqdm
 import pandas as pd
 import shutil
+import face_verification_evaltoolkit
 import numpy as np
 import json
 
@@ -70,7 +71,7 @@ def cached_listdir(d: Path, image_only=False):
             for file in fs
             if file.lower().endswith((".png", ".jpg", ".jpeg", ".gif"))
         ]
-    return fs
+    return list(fs)
 
 
 @lru_cache(2048)
@@ -104,7 +105,7 @@ def norm_crop(img, landmark, image_size=112, mode="arcface"):
     return warped
 
 
-app = typer.Typer()
+app = typer.Typer(pretty_exceptions_show_locals=False)
 
 
 @app.command()
@@ -463,7 +464,7 @@ def main(
 @app.command()
 def sample(
     aligned_dir: Path = typer.Argument(..., help="Aligned dirs"),
-    outpath: Path = typer.Argument(..., help="output txt file path", file_okay=True),
+    outdir: Path = typer.Argument(..., help="output txt file path", dir_okay=True),
     n_pairs: int = typer.Option(50000, help="How much pair gonna create"),
     seed: int = typer.Option(0, help="seed"),
 ):
@@ -514,13 +515,14 @@ def sample(
     assert n_extreme == len(profile_ids)
 
     # Sample frontal2frontal same ID
-    frontal2frontal_sameid_pairs = []
+    f2f_sameid_pairs = []
     n_pair_per_id = n_samples_per_bin["frontal2frontal"] // n_frontal
     n_pair_per_id_remain = n_samples_per_bin["frontal2frontal"] % n_frontal
     pbar = tqdm(frontal_ids, desc="Sample frontal2frontal sameID")
+    sampled_pairs = set()
     for id in pbar:
         pbar.set_description(
-            f"[SameID] frontal2frontal: {len(frontal2frontal_sameid_pairs)}/{n_samples_per_bin['frontal2frontal']}"
+            f"[SameID] frontal2frontal: {len(f2f_sameid_pairs)}/{n_samples_per_bin['frontal2frontal']}"
         )
         dir_path = aligned_dir / id / "frontal"
         image_files = cached_listdir(dir_path, image_only=True)
@@ -534,15 +536,29 @@ def sample(
                 n_samples_for_this_id += n_pair_per_id_remain // 2
                 n_pair_per_id_remain /= 2
 
+        break_ = False
         for _ in range(int(n_samples_for_this_id)):
             # Randomly select two images from the folder
-            pair = random.sample(image_files, 2)
-            # Add the image paths to the list
+            pair = tuple(random.sample(image_files, 2))
             pairpath = list(
                 map(lambda x: (dir_path / x).relative_to(aligned_dir), pair)
             )
-            frontal2frontal_sameid_pairs.append(pairpath)
-        if len(frontal2frontal_sameid_pairs) >= n_samples_per_bin["frontal2frontal"]:
+            trial = 0
+            while tuple(pairpath) in sampled_pairs:
+                if trial > 100:
+                    break_ = True
+                    break
+                pair = tuple(random.sample(image_files, 2))
+                pairpath = list(
+                    map(lambda x: (dir_path / x).relative_to(aligned_dir), pair)
+                )
+                trial += 1
+            if break_:
+                break
+            sampled_pairs.add(tuple(pairpath))
+            # Add the image paths to the list
+            f2f_sameid_pairs.append(pairpath)
+        if len(f2f_sameid_pairs) >= n_samples_per_bin["frontal2frontal"]:
             break
 
     # Sample frontal2extreme same ID
@@ -575,9 +591,23 @@ def sample(
                 n_samples_for_this_id += n_pair_per_id_remain // 2
                 n_pair_per_id_remain /= 2
 
+        break_ = False
         for _ in range(int(n_samples_for_this_id)):
             image1 = random.choice(frontal_images).relative_to(aligned_dir)
             image2 = random.choice(profile_images).relative_to(aligned_dir)
+            pair = tuple([image1, image2])
+            trial = 0
+            while pair in sampled_pairs:
+                if trial > 100:
+                    break_ = True
+                    break
+                image1 = random.choice(frontal_images).relative_to(aligned_dir)
+                image2 = random.choice(profile_images).relative_to(aligned_dir)
+                pair = tuple([image1, image2])
+                trial += 1
+            if break_:
+                break
+            sampled_pairs.add(pair)
             f2e_sameid_pairs.append((image1, image2))
         if len(f2e_sameid_pairs) >= n_samples_per_bin["frontal2extreme"]:
             break
@@ -605,6 +635,7 @@ def sample(
                 n_samples_for_this_id += n_pair_per_id_remain // 2
                 n_pair_per_id_remain /= 2
 
+        break_ = False
         for _ in range(int(n_samples_for_this_id)):
             # Randomly select two images from the folder
             pair = random.sample(profile_images, 2)
@@ -612,6 +643,19 @@ def sample(
             pairpath = list(
                 map(lambda x: (dir_path / x).relative_to(aligned_dir), pair)
             )
+            trial = 0
+            while tuple(pairpath) in sampled_pairs:
+                if trial > 100:
+                    break_ = True
+                    break
+                pair = tuple(random.sample(profile_images, 2))
+                pairpath = list(
+                    map(lambda x: (dir_path / x).relative_to(aligned_dir), pair)
+                )
+                trial += 1
+            if break_:
+                break
+            sampled_pairs.add(tuple(pairpath))
             e2e_sameid_pairs.append(pairpath)
         if len(e2e_sameid_pairs) >= n_samples_per_bin["extreme2extreme"]:
             break
@@ -622,6 +666,7 @@ def sample(
         range(n_samples_per_bin["frontal2frontal"]),
         desc="Sample frontal2frontal diffID",
     )
+    break_ = False
     for _ in pbar:
         pbar.set_description(
             f"[DiffID] frontal2frontal: {len(f2f_diffid_pairs)}/{n_samples_per_bin['frontal2frontal']}"
@@ -636,6 +681,20 @@ def sample(
             (id1_path / pair[0]).relative_to(aligned_dir),
             (id2_path / pair[1]).relative_to(aligned_dir),
         ]
+        trial = 0
+        while tuple(pairpath) in sampled_pairs:
+            if trial > 100:
+                break_ = True
+                break
+            pair = random.sample(id1_files, 1) + random.sample(id2_files, 1)
+            pairpath = [
+                (id1_path / pair[0]).relative_to(aligned_dir),
+                (id2_path / pair[1]).relative_to(aligned_dir),
+            ]
+            trial += 1
+        if break_:
+            continue
+        sampled_pairs.add(tuple(pairpath))
         f2f_diffid_pairs.append(pairpath)
 
     # Sample frontal2extreme diff ID
@@ -657,6 +716,20 @@ def sample(
         id2_files = cached_rglob(id2_path, filter_str="profile")
         pair = random.sample(id1_files, 1) + random.sample(id2_files, 1)
         pairpath = list(map(lambda x: (id1_path / x).relative_to(aligned_dir), pair))
+        trial = 0
+        break_ = False
+        while tuple(pairpath) in sampled_pairs:
+            if trial > 100:
+                break_ = True
+                break
+            pair = random.sample(id1_files, 1) + random.sample(id2_files, 1)
+            pairpath = list(
+                map(lambda x: (id1_path / x).relative_to(aligned_dir), pair)
+            )
+            trial += 1
+        if break_:
+            continue
+        sampled_pairs.add(tuple(pairpath))
         f2e_diffid_pairs.append(pairpath)
 
     # Sample extreme2extreme diff ID
@@ -665,6 +738,7 @@ def sample(
         range(n_samples_per_bin["extreme2extreme"]),
         desc="Sample frontal2frontal diffID",
     )
+    break_ = False
     for _ in pbar:
         pbar.set_description(
             f"[DiffID] extreme2extreme: {len(e2e_diffid_pairs)}/{n_samples_per_bin['extreme2extreme']}"
@@ -679,11 +753,25 @@ def sample(
             (id1_path / pair[0]).relative_to(aligned_dir),
             (id2_path / pair[1]).relative_to(aligned_dir),
         ]
+        trial = 0
+        while tuple(pairpath) in sampled_pairs:
+            if trial > 100:
+                break_ = True
+                break
+            pair = random.sample(id1_files, 1) + random.sample(id2_files, 1)
+            pairpath = [
+                (id1_path / pair[0]).relative_to(aligned_dir),
+                (id2_path / pair[1]).relative_to(aligned_dir),
+            ]
+            trial += 1
+        if break_:
+            continue
+        sampled_pairs.add(tuple(pairpath))
         e2e_diffid_pairs.append(pairpath)
 
     final_pairs = []
     sets = set()
-    for pair in frontal2frontal_sameid_pairs + f2e_sameid_pairs + e2e_sameid_pairs:
+    for pair in f2f_sameid_pairs + f2e_sameid_pairs + e2e_sameid_pairs:
         pair = tuple(map(str, pair))
         if pair in sets:
             continue
@@ -696,9 +784,451 @@ def sample(
         sets.add(pair)
         final_pairs.append(f"{pair[0]}\t{pair[1]}\t0")
 
-    outpath.parent.mkdir(parents=True, exist_ok=True)
-    with open(outpath, "w") as f:
+    f2f_pairs = []
+    sets = set()
+    for label, pairs in enumerate([f2f_diffid_pairs, f2f_sameid_pairs]):
+        for pair in pairs:
+            pair = tuple(map(str, pair))
+            if pair in sets:
+                continue
+            sets.add(pair)
+            f2f_pairs.append(f"{pair[0]}\t{pair[1]}\t{label}")
+
+    f2e_pairs = []
+    sets = set()
+    for label, pairs in enumerate([f2e_diffid_pairs, f2e_sameid_pairs]):
+        for pair in pairs:
+            pair = tuple(map(str, pair))
+            if pair in sets:
+                continue
+            sets.add(pair)
+            f2e_pairs.append(f"{pair[0]}\t{pair[1]}\t{label}")
+
+    e2e_pairs = []
+    sets = set()
+    for label, pairs in enumerate([e2e_diffid_pairs, e2e_sameid_pairs]):
+        for pair in pairs:
+            pair = tuple(map(str, pair))
+            if pair in sets:
+                continue
+            sets.add(pair)
+            e2e_pairs.append(f"{pair[0]}\t{pair[1]}\t{label}")
+
+    all_outpath = outdir / "all.txt"
+    f2f_outpath = outdir / "f2f.txt"
+    f2e_outpath = outdir / "f2e.txt"
+    e2e_outpath = outdir / "e2e.txt"
+
+    all_outpath.parent.mkdir(parents=True, exist_ok=True)
+    with open(all_outpath, "w") as f:
         f.write("\n".join(final_pairs))
+    with open(f2f_outpath, "w") as f:
+        f.write("\n".join(f2f_pairs))
+    with open(f2e_outpath, "w") as f:
+        f.write("\n".join(f2e_pairs))
+    with open(e2e_outpath, "w") as f:
+        f.write("\n".join(e2e_pairs))
+
+
+@app.command()
+def eval(
+    feat_folder: Path = typer.Argument(
+        ..., help="feat folder", exists=True, dir_okay=True
+    ),
+    pair_txt_path: Path = typer.Argument(
+        ..., help="feat folder", exists=True, file_okay=True
+    ),
+    nfolds: int = typer.Argument(10, help="nfolds"),
+):
+    npz_path = feat_folder / "feat.npz"
+    filepath_to_embedidx_path = feat_folder / "paths.txt"
+    with open(filepath_to_embedidx_path, "r") as f:
+        embedidx_to_filepath = list(map(lambda x: Path(x.strip()), f.readlines()))
+        filepath_to_embedidx = {
+            embedidx_to_filepath[i].as_posix(): i
+            for i in range(len(embedidx_to_filepath))
+        }
+    embeddings = np.load(npz_path.as_posix())["arr_0"]
+    issame_list = []
+    final_embeddings = []
+    issame_counter = 0
+    notissame_counter = 0
+    with open(pair_txt_path, "r") as f:
+        lines = f.readlines()
+        for line in tqdm(lines, desc="Preparing input"):
+            line = line.strip()
+            p1, p2, issame = line.split("\t")
+            issame = bool(int(issame))
+            if issame:
+                issame_counter += 1
+            else:
+                notissame_counter += 1
+            issame_list.append(issame)
+            e1 = embeddings[filepath_to_embedidx[p1]]
+            e2 = embeddings[filepath_to_embedidx[p2]]
+            final_embeddings.append(e1)
+            final_embeddings.append(e2)
+    final_embeddings = np.vstack(final_embeddings)
+    assert len(final_embeddings.shape) == 2
+    assert final_embeddings.shape[0] == len(issame_list) * 2
+
+    print("Start evaluating...")
+    print(f"n_pairs: {len(issame_list)}")
+    print(f"pair same: {issame_counter}")
+    print(f"pair diff: {notissame_counter}")
+    print(f"embedding shape: {final_embeddings.shape}")
+    _, _, accuracy, _, _, _ = face_verification_evaltoolkit.evaluate(
+        final_embeddings, issame_list, nrof_folds=nfolds
+    )
+    acc, std = np.mean(accuracy), np.std(accuracy)
+    print(f"Accuracy: {acc:1.5f}+-{std:1.5f}")
+
+
+@app.command()
+def eval2(
+    feat_folder: Path = typer.Argument(
+        ..., help="feat folder", exists=True, dir_okay=True
+    ),
+    pair_txt_path: Path = typer.Argument(
+        ..., help="feat folder", exists=True, file_okay=True
+    ),
+    nfolds: int = typer.Argument(10, help="nfolds"),
+):
+    npz_path = feat_folder / "feat.npz"
+    filepath_to_embedidx_path = feat_folder / "paths.txt"
+    with open(filepath_to_embedidx_path, "r") as f:
+        embedidx_to_filepath = list(map(lambda x: Path(x.strip()), f.readlines()))
+        filepath_to_embedidx = {
+            embedidx_to_filepath[i].as_posix(): i
+            for i in range(len(embedidx_to_filepath))
+        }
+    embeddings = np.load(npz_path.as_posix())["arr_0"]
+    issame_list = []
+    final_same_embeddings = []
+    final_diff_embeddings = []
+    with open(pair_txt_path, "r") as f:
+        lines = f.readlines()
+        for line in tqdm(lines, desc="Preparing input"):
+            line = line.strip()
+            p1, p2, issame = line.split("\t")
+            e1 = embeddings[filepath_to_embedidx[p1]]
+            e2 = embeddings[filepath_to_embedidx[p2]]
+            issame = bool(int(issame))
+            if issame:
+                final_same_embeddings.append(e1)
+                final_same_embeddings.append(e2)
+            else:
+                final_diff_embeddings.append(e1)
+                final_diff_embeddings.append(e2)
+    final_same_embeddings = np.vstack(final_same_embeddings).reshape(-1, 2, 512)
+    final_diff_embeddings = np.vstack(final_diff_embeddings).reshape(-1, 2, 512)
+    final_embeddings = []
+    issame_list = []
+    for same, diff in zip(final_same_embeddings, final_diff_embeddings):
+        final_embeddings.extend([same[0], same[1]])
+        final_embeddings.extend([diff[0], diff[1]])
+        issame_list.append(1)
+        issame_list.append(0)
+    final_embeddings = np.vstack(final_embeddings)
+    assert len(final_embeddings.shape) == 2
+    assert final_embeddings.shape[0] == len(issame_list) * 2
+
+    print("Start evaluating...")
+    print(f"n_pairs: {len(issame_list)}")
+    print(f"embedding shape: {final_embeddings.shape}")
+    tars, tars_std, fars, real_fars = face_verification_evaltoolkit.get_tpr_far(
+        final_embeddings, issame_list, nrof_folds=nfolds
+    )
+    for tar, tar_std, far, real_far in zip(tars, tars_std, fars, real_fars):
+        print(f"tar={tar}; far={far}")
+        # print("tar_std=", tar_std)
+        # print("real_far=", real_far)
+
+
+@app.command()
+def sample_f2f(
+    aligned_dir: Path = typer.Argument(..., help="Aligned dirs"),
+    outdir: Path = typer.Argument(..., help="output txt file path", dir_okay=True),
+    n_pairs: int = typer.Option(50000, help="How much pair gonna create"),
+    seed: int = typer.Option(0, help="seed"),
+):
+    random.seed(seed)
+    np.random.seed(seed)
+
+    ids = list(cached_listdir(aligned_dir))
+    cache_npy_path = outdir / "ids_frontal.npy"
+    if cache_npy_path.exists():
+        ids_with_frontal = np.load(cache_npy_path.as_posix()).tolist()
+    else:
+        ids_with_frontal = set()
+        for id in tqdm(ids, desc="Counting"):
+            dir_path = aligned_dir / id
+            subdir = list(cached_listdir(dir_path))
+            if "frontal" in subdir:
+                id_path = aligned_dir / id / "frontal"
+                files = cached_listdir(id_path, image_only=True)
+                if len(files) < 2:
+                    continue
+                ids_with_frontal.add(id)
+        ids_with_frontal = list(ids_with_frontal)
+        np.save(cache_npy_path, np.array(ids_with_frontal))
+
+    print(f"Number of ID has frontal: {len(ids_with_frontal)}")
+
+    sampled_pairs = set()
+    pbar = tqdm(range(n_pairs), desc="Sample frontal2frontal")
+    while len(sampled_pairs) < n_pairs // 2:
+        id = random.choice(ids_with_frontal)
+        id_path = aligned_dir / id / "frontal"
+        files = cached_listdir(id_path, image_only=True)
+        pair = tuple(
+            map(lambda x: id_path / x, np.random.choice(files, 2, replace=False))
+        ) + (1,)
+        l_before = len(sampled_pairs)
+        sampled_pairs.add(pair)
+        pbar.update(len(sampled_pairs) - l_before)
+
+    while len(sampled_pairs) < n_pairs:
+        ids = np.random.choice(ids_with_frontal, 2, replace=False)
+        assert ids[0] != ids[1]
+        id_paths = list(map(lambda x: aligned_dir / x / "frontal", ids))
+        files1, files2 = cached_listdir(id_paths[0], image_only=True), cached_listdir(
+            id_paths[1], image_only=True
+        )
+        pair = tuple(
+            [
+                id_paths[0] / np.random.choice(files1, 1)[0],
+                id_paths[1] / np.random.choice(files2, 1)[0],
+                0,
+            ]
+        )
+        l_before = len(sampled_pairs)
+        sampled_pairs.add(pair)
+        pbar.update(len(sampled_pairs) - l_before)
+
+    outpath = outdir / "f2f.txt"
+    outdir.mkdir(exist_ok=True, parents=True)
+    with open(outpath, "w") as f:
+        f.write(
+            "\n".join(
+                map(
+                    lambda x: f"{x[0].relative_to(aligned_dir).as_posix()}\t{x[1].relative_to(aligned_dir).as_posix()}\t{x[2]}",
+                    sampled_pairs,
+                )
+            )
+        )
+
+
+@app.command()
+def sample_f2e(
+    aligned_dir: Path = typer.Argument(..., help="Aligned dirs"),
+    outdir: Path = typer.Argument(..., help="output txt file path", dir_okay=True),
+    n_pairs: int = typer.Option(50000, help="How much pair gonna create"),
+    seed: int = typer.Option(0, help="seed"),
+):
+    random.seed(seed)
+    np.random.seed(seed)
+
+    ids = list(cached_listdir(aligned_dir))
+    cache_npy_path = outdir / "ids_frontal_profile.npy"
+    if cache_npy_path.exists():
+        obj = np.load(cache_npy_path.as_posix(), allow_pickle=True)
+        d = obj.item()
+        ids_with_frontal_and_profile = list(d.get("fe"))
+        frontal_ids = list(d.get("f"))
+        profile_ids = list(d.get("e"))
+    else:
+        ids = list(cached_listdir(aligned_dir))
+        ids_with_frontal_only = []
+        ids_with_profile_only = []
+        ids_with_frontal_and_profile = []
+        n_frontal = 0
+        n_extreme = 0
+        for id in tqdm(ids, desc="Counting"):
+            dir_path = aligned_dir / id
+            subdirs = list(cached_listdir(dir_path))
+            if len(subdirs) == 1:
+                if subdirs[0] == "frontal":
+                    ids_with_frontal_only.append(id)
+                    n_frontal += 1
+                elif "profile" in subdirs[0]:
+                    ids_with_profile_only.append(id)
+                    n_extreme += 1
+            else:
+                if "frontal" in subdirs:
+                    ids_with_frontal_and_profile.append(id)
+                    n_frontal += 1
+                else:
+                    ids_with_profile_only.append(id)
+                n_extreme += 1
+
+        ids_with_frontal_and_profile = list(set(ids_with_frontal_and_profile))
+        frontal_ids = list(set(ids_with_frontal_only + ids_with_frontal_and_profile))
+        profile_ids = list(set(ids_with_profile_only + ids_with_frontal_and_profile))
+        d = {"fe": ids_with_frontal_and_profile, "f": frontal_ids, "e": profile_ids}
+        np.save(cache_npy_path, d)
+
+    for k, v in d.items():
+        print(f"Number of ID has {k}: {len(v)}")
+
+    sampled_pairs = set()
+    pbar = tqdm(range(n_pairs), desc="Sample frontal2extreme")
+    while len(sampled_pairs) < n_pairs // 2:
+        id = random.choice(ids_with_frontal_and_profile)
+        files = cached_rglob(aligned_dir / id)
+        frontal_files = list(
+            filter(lambda x: "frontal" in x.resolve().as_posix(), files)
+        )
+        profile_files = list(
+            filter(lambda x: "frontal" not in x.resolve().as_posix(), files)
+        )
+        pair = tuple(
+            [
+                np.random.choice(frontal_files, 1)[0],
+                np.random.choice(profile_files, 1)[0],
+                1,
+            ]
+        )
+        l_before = len(sampled_pairs)
+        sampled_pairs.add(pair)
+        pbar.update(len(sampled_pairs) - l_before)
+
+    while len(sampled_pairs) < n_pairs:
+        frontal_id = random.choice(frontal_ids)
+        profile_id = random.choice(profile_ids)
+        if frontal_id == profile_id:
+            continue
+        frontal_files = cached_rglob(aligned_dir / frontal_id)
+        profile_files = cached_rglob(aligned_dir / profile_id)
+        frontal_files = list(
+            filter(lambda x: "frontal" in x.resolve().as_posix(), frontal_files)
+        )
+        profile_files = list(
+            filter(lambda x: "frontal" not in x.resolve().as_posix(), profile_files)
+        )
+        pair = tuple(
+            [
+                np.random.choice(frontal_files, 1)[0],
+                np.random.choice(profile_files, 1)[0],
+                0,
+            ]
+        )
+        l_before = len(sampled_pairs)
+        sampled_pairs.add(pair)
+        pbar.update(len(sampled_pairs) - l_before)
+
+    outpath = outdir / "f2e.txt"
+    outdir.mkdir(exist_ok=True, parents=True)
+    with open(outpath, "w") as f:
+        f.write(
+            "\n".join(
+                map(
+                    lambda x: f"{x[0].relative_to(aligned_dir).as_posix()}\t{x[1].relative_to(aligned_dir).as_posix()}\t{x[2]}",
+                    sampled_pairs,
+                )
+            )
+        )
+
+
+@app.command()
+def sample_e2e(
+    aligned_dir: Path = typer.Argument(..., help="Aligned dirs"),
+    outdir: Path = typer.Argument(..., help="output txt file path", dir_okay=True),
+    n_pairs: int = typer.Option(50000, help="How much pair gonna create"),
+    seed: int = typer.Option(0, help="seed"),
+):
+    random.seed(seed)
+    np.random.seed(seed)
+
+    ids = list(cached_listdir(aligned_dir))
+    cache_npy_path = outdir / "ids_frontal_profile.npy"
+    if cache_npy_path.exists():
+        obj = np.load(cache_npy_path.as_posix(), allow_pickle=True)
+        d = obj.item()
+        ids_with_frontal_and_profile = list(d.get("fe"))
+        frontal_ids = list(d.get("f"))
+        profile_ids = list(d.get("e"))
+    else:
+        ids = list(cached_listdir(aligned_dir))
+        ids_with_frontal_only = []
+        ids_with_profile_only = []
+        ids_with_frontal_and_profile = []
+        n_frontal = 0
+        n_extreme = 0
+        for id in tqdm(ids, desc="Counting"):
+            dir_path = aligned_dir / id
+            subdirs = list(cached_listdir(dir_path))
+            if len(subdirs) == 1:
+                if subdirs[0] == "frontal":
+                    ids_with_frontal_only.append(id)
+                    n_frontal += 1
+                elif "profile" in subdirs[0]:
+                    ids_with_profile_only.append(id)
+                    n_extreme += 1
+            else:
+                if "frontal" in subdirs:
+                    ids_with_frontal_and_profile.append(id)
+                    n_frontal += 1
+                else:
+                    ids_with_profile_only.append(id)
+                n_extreme += 1
+
+        ids_with_frontal_and_profile = list(set(ids_with_frontal_and_profile))
+        frontal_ids = list(set(ids_with_frontal_only + ids_with_frontal_and_profile))
+        profile_ids = list(set(ids_with_profile_only + ids_with_frontal_and_profile))
+        d = {"fe": ids_with_frontal_and_profile, "f": frontal_ids, "e": profile_ids}
+        np.save(cache_npy_path, d)
+
+    for k, v in d.items():
+        print(f"Number of ID has {k}: {len(v)}")
+
+    sampled_pairs = set()
+    pbar = tqdm(range(n_pairs), desc="Sample frontal2extreme")
+    while len(sampled_pairs) < n_pairs // 2:
+        id = random.choice(ids_with_frontal_and_profile)
+        files = cached_rglob(aligned_dir / id)
+        profile_files = list(
+            filter(lambda x: "frontal" not in x.resolve().as_posix(), files)
+        )
+        if len(profile_files) < 2:
+            continue
+        pair = tuple(np.random.choice(profile_files, 2, replace=False).tolist() + [1])
+        l_before = len(sampled_pairs)
+        sampled_pairs.add(pair)
+        pbar.update(len(sampled_pairs) - l_before)
+
+    while len(sampled_pairs) < n_pairs:
+        profile_ids_ = np.random.choice(profile_ids, 2, replace=False)
+        profile_files1 = cached_rglob(aligned_dir / profile_ids_[0])
+        profile_files2 = cached_rglob(aligned_dir / profile_ids_[1])
+        profile_files1 = list(
+            filter(lambda x: "frontal" not in x.resolve().as_posix(), profile_files1)
+        )
+        profile_files2 = list(
+            filter(lambda x: "frontal" not in x.resolve().as_posix(), profile_files2)
+        )
+        pair = tuple(
+            [
+                np.random.choice(profile_files1, 1)[0],
+                np.random.choice(profile_files2, 1)[0],
+                0,
+            ]
+        )
+        l_before = len(sampled_pairs)
+        sampled_pairs.add(pair)
+        pbar.update(len(sampled_pairs) - l_before)
+
+    outpath = outdir / "e2e.txt"
+    outdir.mkdir(exist_ok=True, parents=True)
+    with open(outpath, "w") as f:
+        f.write(
+            "\n".join(
+                map(
+                    lambda x: f"{x[0].relative_to(aligned_dir).as_posix()}\t{x[1].relative_to(aligned_dir).as_posix()}\t{x[2]}",
+                    sampled_pairs,
+                )
+            )
+        )
 
 
 if __name__ == "__main__":

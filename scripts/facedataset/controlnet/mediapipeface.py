@@ -60,6 +60,31 @@ for edge in mp_face_mesh.FACEMESH_LIPS:
 iris_landmark_spec = {468: right_iris_draw, 473: left_iris_draw}
 
 
+def draw_pupils_nparray(image, landmark_list, drawing_spec, halfwidth: int = 2):
+    """We have a custom function to draw the pupils because the mp.draw_landmarks method requires a parameter for all
+    landmarks.  Until our PR is merged into mediapipe, we need this separate method."""
+    if len(image.shape) != 3:
+        raise ValueError("Input image must be H,W,C.")
+    image_rows, image_cols, image_channels = image.shape
+    if image_channels != 3:  # BGR channels
+        raise ValueError("Input image must contain three channel bgr data.")
+    for idx, landmark in enumerate(landmark_list):
+        image_x = landmark[0]
+        image_y = landmark[1]
+        draw_color = None
+        if isinstance(drawing_spec, Mapping):
+            if drawing_spec.get(idx) is None:
+                continue
+            else:
+                draw_color = drawing_spec[idx].color
+        elif isinstance(drawing_spec, DrawingSpec):
+            draw_color = drawing_spec.color
+        image[
+            image_y - halfwidth : image_y + halfwidth,
+            image_x - halfwidth : image_x + halfwidth,
+            :,
+        ] = draw_color
+
 def draw_pupils(image, landmark_list, drawing_spec, halfwidth: int = 2):
     """We have a custom function to draw the pupils because the mp.draw_landmarks method requires a parameter for all
     landmarks.  Until our PR is merged into mediapipe, we need this separate method."""
@@ -103,7 +128,9 @@ def generate_annotation(
     input_image: Image.Image,
     max_faces: int,
     min_face_size_pixels: int = 0,
+    return_landmarks_only: bool = False,
     return_annotation_data: bool = False,
+    refine_landmarks=True,
 ):
     """
     Find up to 'max_faces' inside the provided input image.
@@ -121,7 +148,7 @@ def generate_annotation(
     with mp_face_mesh.FaceMesh(
         static_image_mode=True,
         max_num_faces=max_faces,
-        refine_landmarks=True,
+        refine_landmarks=refine_landmarks,
         min_detection_confidence=0.5,
     ) as facemesh:
         img_rgb = numpy.asarray(input_image)
@@ -162,6 +189,8 @@ def generate_annotation(
 
         faces_remaining_after_filtering = len(filtered_landmarks)
 
+        if return_landmarks_only:
+            return filtered_landmarks
         # Draw detected faces:
         for face_landmarks in filtered_landmarks:
             mp_drawing.draw_landmarks(

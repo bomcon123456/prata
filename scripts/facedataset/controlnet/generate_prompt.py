@@ -88,12 +88,12 @@ def main(
             race = attrib.dominant_race.lower() + " "
         # add case norm
         prompt = f"A portrait image of a {emotion}{race}{subject} with head pose: yaw={y}, pitch={p}"
-        res[name] = prompt
+        res[f"{folder}/{name}"] = prompt
         # add case mirror
         name += "_mirror"
         y *= -1
         prompt = f"A portrait image of a {emotion}{race}{subject} with head pose: yaw={y}, pitch={p}"
-        res[name] = prompt
+        res[f"{folder}/{name}"] = prompt
 
     outpath.parent.mkdir(exist_ok=True, parents=True)
     with open(outpath, "w") as f:
