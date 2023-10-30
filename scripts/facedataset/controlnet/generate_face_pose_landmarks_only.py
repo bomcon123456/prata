@@ -1,20 +1,19 @@
-import cv2
-from multiprocessing import Pool
 from functools import partial
-import numpy as np
+from multiprocessing import Pool
 from pathlib import Path
 
+import cv2
+import mediapipe as mp
+import numpy as np
+import typer
+from mediapipeface import (
+    draw_pupils_nparray,
+    face_connection_spec,
+    generate_annotation,
+    iris_landmark_spec,
+)
 from PIL import Image
 from tqdm import tqdm
-
-from mediapipeface import (
-    generate_annotation,
-    face_connection_spec,
-    iris_landmark_spec,
-    draw_pupils_nparray,
-)
-import mediapipe as mp
-import typer
 
 from prata.utils import get_filelist_and_cache
 
@@ -96,6 +95,7 @@ def main(
     nprocs: int = typer.Option(16, help="Nprocs"),
 ):
     img_paths = list(get_filelist_and_cache(image_dir, "*.[jp][pn]g"))
+    img_paths = list(filter(lambda x: "condition" not in x.name, img_paths))
     with Pool(nprocs) as p:
         list(
             tqdm(

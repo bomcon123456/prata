@@ -1,19 +1,18 @@
-import typer
-import cv2
-import shutil
-import numpy as np
-from tqdm.rich import tqdm
 import shutil
 import time
 from pathlib import Path
 
+import cv2
+import numpy as np
+import torch
+import typer
 from diffusers import (
-    StableDiffusionControlNetPipeline,
     ControlNetModel,
+    StableDiffusionControlNetPipeline,
     UniPCMultistepScheduler,
 )
 from diffusers.utils import load_image
-import torch
+from tqdm.rich import tqdm
 
 from prata.utils import get_filelist_and_cache
 
@@ -171,16 +170,14 @@ def nme(
         # target_folder = (
         #     tgt_path / src_npy_path.parent.relative_to(src_path) / src_npy_path.stem
         # )
-        target_folder = (
-            tgt_path / src_npy_path.stem
-        )
+        target_folder = tgt_path / src_npy_path.stem
         if not target_folder.exists():
             continue
         tgt_npys = list(target_folder.glob("*.npy"))
         for j, tgt_npy_path in enumerate(tgt_npys):
             if tgt_npy_path.stem == "condition":
                 continue
-            tgt_lmk = np.load(tgt_npy_path).reshape(-1, 478, 2)
+            tgt_lmk = np.load(tgt_npy_path).reshape(-1, src_lmk.shape[0], 2)
             tgt_lmk = get_best_lmk(tgt_lmk)
 
             nme = NME(src_lmk, tgt_lmk)

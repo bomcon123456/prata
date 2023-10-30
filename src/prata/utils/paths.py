@@ -1,25 +1,25 @@
-from pathlib import Path
-import pickle
 import hashlib
+import pickle
+from pathlib import Path
+from typing import List
 
-CACHE_PATH = Path("~/.cache/trungdt21")
-CACHE_PATH.mkdir(exist_ok=True, parents=True)
+CACHE_BASEDIR = Path("~/.cache/prata").expanduser()
+SECRET = "prata!@#!"
+CACHE_PATH_DIR = CACHE_BASEDIR / "filelists"
+CACHE_PATH_DIR.mkdir(exist_ok=True, parents=True)
 
 
-def generate_cachepath_from_path(path: Path):
-    CACHE_PATH_DIR = CACHE_PATH / "filelists"
-    CACHE_PATH_DIR.mkdir(exist_ok=True, parents=True)
+def generate_cachepath_from_path(path: Path) -> Path:
     path = path.resolve().as_posix()
     md5sum = hashlib.md5(path.encode("utf-8")).hexdigest()
     return CACHE_PATH_DIR / md5sum
 
 
-def get_filelist_and_cache(path: Path, glob_str: str):
-    CACHE_PATH_DIR = CACHE_PATH / "filelists"
-    CACHE_PATH_DIR.mkdir(exist_ok=True, parents=True)
+def get_filelist_and_cache(path: Path, glob_str: str) -> List[Path]:
     pathstr = path.resolve().as_posix()
-    md5sum = hashlib.md5(pathstr.encode("utf-8")).hexdigest()
-    cachepath = CACHE_PATH_DIR / f"{md5sum}_{glob_str.replace('*','')}.pkl"
+    pathstr_ = pathstr + f"{SECRET}_glob_{glob_str}"
+    md5sum = hashlib.md5(pathstr_.encode("utf-8")).hexdigest()
+    cachepath = CACHE_PATH_DIR / f"{md5sum}.pkl"
     reload = True
     filelist = []
     if cachepath.exists():

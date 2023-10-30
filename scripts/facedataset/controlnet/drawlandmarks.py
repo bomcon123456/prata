@@ -17,8 +17,8 @@ def select_best_landmarks(face_landmarks):
         biggest_area = -1
         for i, landmarks in enumerate(face_landmarks):
             # Extract the x and y coordinates of all 68 facial landmarks
-            x_coordinates = [landmarks[i][0] for i in range(68)]
-            y_coordinates = [landmarks[i][1] for i in range(68)]
+            x_coordinates = [landmarks[i][0] for i in range(face_landmarks.shape[1])]
+            y_coordinates = [landmarks[i][1] for i in range(face_landmarks.shape[1])]
 
             # Calculate the minimum and maximum x and y coordinates
             min_x = min(x_coordinates)
