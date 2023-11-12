@@ -1,4 +1,5 @@
 from math import isnan
+import time
 from functools import lru_cache
 import pickle
 from functools import partial
@@ -43,22 +44,18 @@ def get_lmk(lmks5pts, lmks68pts):
         if not isinstance(lmk, list) or len(lmk) != 68 * 3:
             return None
         lmk = np.array(lmk).reshape(3, 68)
-        lmk = np.stack(lmk[:2], axis=1).reshape(68, 2).astype(np.int32)
-        lefteye = (lmk[36] + lmk[39]) / 2
-        righteye = (lmk[42] + lmk[45]) / 2
-        nose = lmk[33]
-        leftmouth = lmk[48]
-        rightmouth = lmk[54]
-        lmk = np.array(
-            [
-                lefteye,
-                righteye,
-                nose,
-                leftmouth,
-                rightmouth,
-            ],
-            dtype=np.int32,
-        ).reshape(5, 2)
+        lm = np.stack(lmk[:2], axis=1).reshape(68, 2).astype(np.int32)
+
+        lm_idx = np.array([31, 37, 40, 43, 46, 49, 55]) - 1
+        lm5p = np.stack([
+            lm[lm_idx[0], :],
+            np.mean(lm[lm_idx[[1, 2]], :], 0),
+            np.mean(lm[lm_idx[[3, 4]], :], 0),
+            lm[lm_idx[5], :],
+            lm[lm_idx[6], :]], axis=0)
+        lm5p = lm5p[[1, 2, 0, 3, 4], :]
+
+        lmk = lm5p.reshape(5, 2)
     return lmk
 
 
@@ -149,9 +146,11 @@ def align_vfhq_full(
         f.write("\n".join(fail_images))
 
 
-def func(csv_file, sample_per_csv, raw_dir, outimagepath, seed):
+def func(csv_file, sample_per_csv, raw_dir, outimagepath, seed, debug_mode=False):
     bin = csv_file.parent.name
     df = pd.read_csv(csv_file)
+    if bin != "frontal":
+        sample_per_csv *= 2
     real_samples_per_csv = min(len(df), sample_per_csv)
     df = df.sample(n=real_samples_per_csv, random_state=seed)
     id = csv_file.stem
@@ -172,7 +171,20 @@ def func(csv_file, sample_per_csv, raw_dir, outimagepath, seed):
             continue
 
         img = cv2.imread(infilepath.as_posix())
-        lmk = get_lmk(row.lmks5pts, row.lmks68pts)
+        lmk = get_lmk(None, row.lmks68pts)
+        lmk_x_min = lmk[:, 0].min()
+        lmk_x_max = lmk[:, 0].max()
+        lmk_y_min = lmk[:, 1].min()
+        lmk_y_max = lmk[:, 1].max()
+        if lmk_x_min < int(row.x1) - 10 or lmk_x_max > int(row.x2) + 10 or lmk_y_min < int(row.y1) -10 or lmk_y_max > int(row.y2)+10:
+            continue
+        if debug_mode:
+            out_debug_path = outimagepath.parent / f"debug/{time.time()}.jpg"
+            out_debug_path.parent.mkdir(exist_ok=True, parents=True)
+            debug_img = img.copy()
+            for lmk_ in lmk:
+                cv2.circle(debug_img, (int(lmk_[0]), int(lmk_[1])), 1, (0, 0, 255), -1)
+            cv2.imwrite(out_debug_path.as_posix(), debug_img)
 
         aligned = norm_crop(img, lmk)
         out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -831,7 +843,7 @@ def sample(
 
 
 @app.command()
-def eval(
+def eval1(
     feat_folder: Path = typer.Argument(
         ..., help="feat folder", exists=True, dir_okay=True
     ),

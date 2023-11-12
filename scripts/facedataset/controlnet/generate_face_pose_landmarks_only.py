@@ -54,7 +54,13 @@ def f(
     max_image_size: int = 32766,
     min_face_size_pixels: int = 64,
 ):
-    img = Image.open(img_path.as_posix()).convert("RGB")
+    outpath = output_dir / img_path.relative_to(image_dir).with_suffix(".npy")
+    if outpath.exists():
+        return
+    try:
+        img = Image.open(img_path.as_posix()).convert("RGB")
+    except OSError:
+        return
     img_width = img.size[0]
     img_height = img.size[1]
     img_size = min(img.size[0], img.size[1])
