@@ -162,7 +162,8 @@ def calculate_val(
 
 
 def calculate_val_far(threshold, dist, actual_issame):
-    predict_issame = np.greater(dist, threshold)
+    # predict_issame = np.less(dist, threshold)  # for l2
+    predict_issame = np.greater(dist, threshold)  # for cosine
     true_accept = np.sum(np.logical_and(predict_issame, actual_issame))
     false_accept = np.sum(np.logical_and(predict_issame, np.logical_not(actual_issame)))
     n_same = np.sum(actual_issame)
@@ -176,7 +177,7 @@ def calculate_val_far(threshold, dist, actual_issame):
 
 def evaluate(embeddings, actual_issame, nrof_folds=10, pca=0):
     # Calculate evaluation metrics
-    thresholds = np.arange(0, 4, 0.01)
+    thresholds = np.arange(0, 1, 0.01)
     embeddings1 = embeddings[0::2]
     embeddings2 = embeddings[1::2]
     tpr, fpr, accuracy = calculate_roc(
@@ -187,7 +188,7 @@ def evaluate(embeddings, actual_issame, nrof_folds=10, pca=0):
         nrof_folds=nrof_folds,
         pca=pca,
     )
-    thresholds = np.arange(0, 4, 0.001)
+    thresholds = np.arange(0, 1, 0.001)
     val, val_std, far = calculate_val(
         thresholds,
         embeddings1,

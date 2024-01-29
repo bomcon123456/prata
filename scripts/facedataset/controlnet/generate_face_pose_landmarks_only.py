@@ -100,8 +100,10 @@ def main(
     output_dir: Path = typer.Argument(..., help="output dir", dir_okay=True),
     nprocs: int = typer.Option(16, help="Nprocs"),
 ):
+    print("Loading filelist...")
     img_paths = list(get_filelist_and_cache(image_dir, "*.[jp][pn]g"))
-    img_paths = list(filter(lambda x: "condition" not in x.name, img_paths))
+    print("Loaded filelist...")
+    # img_paths = list(filter(lambda x: "condition" not in x.name, img_paths))
     with Pool(nprocs) as p:
         list(
             tqdm(

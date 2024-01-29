@@ -1,25 +1,23 @@
-from math import isnan
-import time
-from functools import lru_cache
-import pickle
-from functools import partial
-from multiprocessing import Pool
-from re import sub
-import typer
-from collections import defaultdict
-import os
-import random
-from pathlib import Path
-from tqdm import tqdm
-import pandas as pd
-import shutil
-import face_verification_evaltoolkit
-import numpy as np
 import json
+import os
+import pickle
+import random
+import shutil
+import time
+from collections import defaultdict
+from functools import lru_cache, partial
+from math import isnan
+from multiprocessing import Pool
+from pathlib import Path
+from re import sub
 
 import cv2
+import face_verification_evaltoolkit
+import numpy as np
+import pandas as pd
+import typer
 from skimage import transform as trans
-
+from tqdm import tqdm
 
 arcface_dst = np.array(
     [
@@ -47,12 +45,16 @@ def get_lmk(lmks5pts, lmks68pts):
         lm = np.stack(lmk[:2], axis=1).reshape(68, 2).astype(np.int32)
 
         lm_idx = np.array([31, 37, 40, 43, 46, 49, 55]) - 1
-        lm5p = np.stack([
-            lm[lm_idx[0], :],
-            np.mean(lm[lm_idx[[1, 2]], :], 0),
-            np.mean(lm[lm_idx[[3, 4]], :], 0),
-            lm[lm_idx[5], :],
-            lm[lm_idx[6], :]], axis=0)
+        lm5p = np.stack(
+            [
+                lm[lm_idx[0], :],
+                np.mean(lm[lm_idx[[1, 2]], :], 0),
+                np.mean(lm[lm_idx[[3, 4]], :], 0),
+                lm[lm_idx[5], :],
+                lm[lm_idx[6], :],
+            ],
+            axis=0,
+        )
         lm5p = lm5p[[1, 2, 0, 3, 4], :]
 
         lmk = lm5p.reshape(5, 2)
@@ -176,7 +178,12 @@ def func(csv_file, sample_per_csv, raw_dir, outimagepath, seed, debug_mode=False
         lmk_x_max = lmk[:, 0].max()
         lmk_y_min = lmk[:, 1].min()
         lmk_y_max = lmk[:, 1].max()
-        if lmk_x_min < int(row.x1) - 10 or lmk_x_max > int(row.x2) + 10 or lmk_y_min < int(row.y1) -10 or lmk_y_max > int(row.y2)+10:
+        if (
+            lmk_x_min < int(row.x1) - 10
+            or lmk_x_max > int(row.x2) + 10
+            or lmk_y_min < int(row.y1) - 10
+            or lmk_y_max > int(row.y2) + 10
+        ):
             continue
         if debug_mode:
             out_debug_path = outimagepath.parent / f"debug/{time.time()}.jpg"
@@ -983,6 +990,7 @@ def sample_f2f(
                     continue
                 ids_with_frontal.add(id)
         ids_with_frontal = list(ids_with_frontal)
+        cache_npy_path.parent.mkdir(exist_ok=True, parents=True)
         np.save(cache_npy_path, np.array(ids_with_frontal))
 
     print(f"Number of ID has frontal: {len(ids_with_frontal)}")
@@ -1078,6 +1086,7 @@ def sample_f2e(
         frontal_ids = list(set(ids_with_frontal_only + ids_with_frontal_and_profile))
         profile_ids = list(set(ids_with_profile_only + ids_with_frontal_and_profile))
         d = {"fe": ids_with_frontal_and_profile, "f": frontal_ids, "e": profile_ids}
+        cache_npy_path.parent.mkdir(exist_ok=True, parents=True)
         np.save(cache_npy_path, d)
 
     for k, v in d.items():
@@ -1094,6 +1103,8 @@ def sample_f2e(
         profile_files = list(
             filter(lambda x: "frontal" not in x.resolve().as_posix(), files)
         )
+        if len(profile_files) < 1:
+            continue
         pair = tuple(
             [
                 np.random.choice(frontal_files, 1)[0],
@@ -1189,13 +1200,14 @@ def sample_e2e(
         frontal_ids = list(set(ids_with_frontal_only + ids_with_frontal_and_profile))
         profile_ids = list(set(ids_with_profile_only + ids_with_frontal_and_profile))
         d = {"fe": ids_with_frontal_and_profile, "f": frontal_ids, "e": profile_ids}
+        cache_npy_path.parent.mkdir(exist_ok=True, parents=True)
         np.save(cache_npy_path, d)
 
     for k, v in d.items():
         print(f"Number of ID has {k}: {len(v)}")
 
     sampled_pairs = set()
-    pbar = tqdm(range(n_pairs), desc="Sample frontal2extreme")
+    pbar = tqdm(range(n_pairs), desc="Sample extreme2extreme")
     while len(sampled_pairs) < n_pairs // 2:
         id = random.choice(ids_with_frontal_and_profile)
         files = cached_rglob(aligned_dir / id)
@@ -1241,6 +1253,235 @@ def sample_e2e(
                 )
             )
         )
+
+
+@app.command()
+def sample_facerecognition(
+    aligned_dir: Path = typer.Argument(..., help="Aligned dirs"),
+    outdir: Path = typer.Argument(..., help="output txt file path", dir_okay=True),
+    seed: int = typer.Option(0, help="seed"),
+    n_gallery: int = typer.Option(1000, help="n_gallery"),
+    n_probe_per_id: int = typer.Option(5, help="#probe"),
+):
+    random.seed(seed)
+    np.random.seed(seed)
+
+    ids = list(cached_listdir(aligned_dir))
+    lookup = defaultdict(dict)
+    counter = defaultdict(int)
+
+    cache_path = outdir / "lookup_sample_facereg.json"
+    if cache_path.exists():
+        with open(cache_path, "r") as f:
+            t_ = json.load(f)
+        lookup = t_["lookup"]
+        counter = t_["counter"]
+        gallery_probe_dict = t_["gallery_probe"]
+    else:
+        for id in tqdm(ids, desc="Counting"):
+            dir_path = aligned_dir / id
+            real_id = "_".join(id.split("_")[:-1])
+            image_paths = cached_rglob(dir_path)
+            for path in image_paths:
+                path = Path(path)
+                pose = path.parent.name
+                if pose not in lookup[real_id]:
+                    lookup[real_id][pose] = []
+                lookup[real_id][pose].append(path.as_posix())
+                counter[pose] += 1
+        gallery_probe_dict = defaultdict(dict)
+        for userid, pose_dict in lookup.items():
+            gallery_probe_dict[userid]["probe"] = [
+                item for sublist in pose_dict.values() for item in sublist
+            ]
+            if "frontal" in pose_dict:
+                gallery_probe_dict[userid]["gallery"] = random.choice(
+                    pose_dict["frontal"]
+                )
+                gallery_probe_dict[userid]["probe"].remove(
+                    gallery_probe_dict[userid]["gallery"]
+                )
+        cache_path.parent.mkdir(exist_ok=True, parents=True)
+        with open(cache_path, "w") as f:
+            t = {
+                "lookup": lookup,
+                "counter": counter,
+                "gallery_probe": gallery_probe_dict,
+            }
+            json.dump(t, f)
+    print(f"Counter image: {counter}")
+    n_not_gallery = set()
+    n_has_gallery = set()
+    for k, v in gallery_probe_dict.items():
+        if "gallery" not in v:
+            n_not_gallery.add(k)
+        else:
+            assert len(v["gallery"]) > 0
+            assert v["gallery"] not in v["probe"]
+            n_has_gallery.add(k)
+        # print(
+        #     f"ID: {k}; Gallery: {'Yes' if 'gallery' in v else 'None'}; Probe: {len(v['probe'])}"
+        # )
+    print(f"n_has_gallery: {len(n_has_gallery)}")
+    print(f"n_not_gallery: {len(n_not_gallery)}")
+
+    gallery_ids = random.sample(list(n_has_gallery), n_gallery)
+    nonmate_ids = n_not_gallery | (n_has_gallery - set(gallery_ids))
+    gallery_images = []
+    mate_search_probe = []
+    nonmate_search_probe = []
+    for gallery_id in gallery_ids:
+        gallery_images.append(gallery_probe_dict[gallery_id]["gallery"])
+        mate_search_probe.extend(
+            np.random.choice(gallery_probe_dict[gallery_id]["probe"], n_probe_per_id)
+        )
+    for nonmate_id in nonmate_ids:
+        nonmate_search_probe.extend(
+            np.random.choice(gallery_probe_dict[nonmate_id]["probe"], n_probe_per_id)
+        )
+    columns = ["id", "cropped_img_path", "type", "masked"]
+    df = pd.DataFrame(columns=columns)
+    for gallery_image in tqdm(gallery_images, desc="Gallery"):
+        gallery_image = Path(gallery_image)
+        df = df.append(
+            {
+                "id": "_".join(gallery_image.parent.parent.name.split("_")[:-1]),
+                "cropped_img_path": gallery_image.relative_to(aligned_dir),
+                "type": "gallery",
+                "masked": 0,
+            },
+            ignore_index=True,
+        )
+    for mate in tqdm(mate_search_probe, desc="Mate"):
+        mate = Path(mate)
+        df = df.append(
+            {
+                "id": "_".join(mate.parent.parent.name.split("_")[:-1]),
+                "cropped_img_path": mate.relative_to(aligned_dir),
+                "type": "mate",
+                "masked": 0,
+            },
+            ignore_index=True,
+        )
+    for nonmate in tqdm(nonmate_search_probe, desc="Non-mate"):
+        nonmate = Path(nonmate)
+        df = df.append(
+            {
+                "id": "_".join(nonmate.parent.parent.name.split("_")[:-1]),
+                "cropped_img_path": nonmate.relative_to(aligned_dir),
+                "type": "non-mate",
+                "masked": 0,
+            },
+            ignore_index=True,
+        )
+    df.to_csv(outdir / "gallery_probe.csv", index=False)
+    print(df)
+
+
+@app.command()
+def sample_facerecognition_closeset(
+    aligned_dir: Path = typer.Argument(..., help="Aligned dirs"),
+    outdir: Path = typer.Argument(..., help="output txt file path", dir_okay=True),
+    seed: int = typer.Option(0, help="seed"),
+    n_gallery: int = typer.Option(5000, help="n_gallery"),
+    n_probe_per_id: int = typer.Option(5, help="#probe"),
+):
+    random.seed(seed)
+    np.random.seed(seed)
+
+    ids = list(cached_listdir(aligned_dir))
+    lookup = defaultdict(dict)
+    counter = defaultdict(int)
+
+    cache_path = outdir / "lookup_sample_facereg.json"
+    if cache_path.exists():
+        with open(cache_path, "r") as f:
+            t_ = json.load(f)
+        lookup = t_["lookup"]
+        counter = t_["counter"]
+        gallery_probe_dict = t_["gallery_probe"]
+    else:
+        for id in tqdm(ids, desc="Counting"):
+            dir_path = aligned_dir / id
+            real_id = "_".join(id.split("_")[:-1])
+            image_paths = cached_rglob(dir_path)
+            for path in image_paths:
+                path = Path(path)
+                pose = path.parent.name
+                if pose not in lookup[real_id]:
+                    lookup[real_id][pose] = []
+                lookup[real_id][pose].append(path.as_posix())
+                counter[pose] += 1
+        gallery_probe_dict = defaultdict(dict)
+        for userid, pose_dict in lookup.items():
+            gallery_probe_dict[userid]["probe"] = [
+                item for sublist in pose_dict.values() for item in sublist
+            ]
+            if "frontal" in pose_dict:
+                gallery_probe_dict[userid]["gallery"] = random.choice(
+                    pose_dict["frontal"]
+                )
+                gallery_probe_dict[userid]["probe"].remove(
+                    gallery_probe_dict[userid]["gallery"]
+                )
+        cache_path.parent.mkdir(exist_ok=True, parents=True)
+        with open(cache_path, "w") as f:
+            t = {
+                "lookup": lookup,
+                "counter": counter,
+                "gallery_probe": gallery_probe_dict,
+            }
+            json.dump(t, f)
+    print(f"Counter image: {counter}")
+    n_not_gallery = set()
+    n_has_gallery = set()
+    for k, v in gallery_probe_dict.items():
+        if "gallery" not in v:
+            n_not_gallery.add(k)
+        else:
+            assert len(v["gallery"]) > 0
+            assert v["gallery"] not in v["probe"]
+            n_has_gallery.add(k)
+        # print(
+        #     f"ID: {k}; Gallery: {'Yes' if 'gallery' in v else 'None'}; Probe: {len(v['probe'])}"
+        # )
+    print(f"n_has_gallery: {len(n_has_gallery)}")
+    print(f"n_not_gallery: {len(n_not_gallery)}")
+
+    gallery_ids = random.sample(list(n_has_gallery), n_gallery)
+    gallery_images = []
+    mate_search_probe = []
+    for gallery_id in gallery_ids:
+        gallery_images.append(gallery_probe_dict[gallery_id]["gallery"])
+        mate_search_probe.extend(
+            np.random.choice(gallery_probe_dict[gallery_id]["probe"], n_probe_per_id)
+        )
+    columns = ["id", "cropped_img_path", "type", "masked"]
+    df = pd.DataFrame(columns=columns)
+    for gallery_image in tqdm(gallery_images, desc="Gallery"):
+        gallery_image = Path(gallery_image)
+        df = df.append(
+            {
+                "id": "_".join(gallery_image.parent.parent.name.split("_")[:-1]),
+                "cropped_img_path": gallery_image.relative_to(aligned_dir),
+                "type": "gallery",
+                "masked": 0,
+            },
+            ignore_index=True,
+        )
+    for mate in tqdm(mate_search_probe, desc="Mate"):
+        mate = Path(mate)
+        df = df.append(
+            {
+                "id": "_".join(mate.parent.parent.name.split("_")[:-1]),
+                "cropped_img_path": mate.relative_to(aligned_dir),
+                "type": "mate",
+                "masked": 0,
+            },
+            ignore_index=True,
+        )
+    df.to_csv(outdir / "gallery_probe_closeset.csv", index=False)
+    print(df)
 
 
 if __name__ == "__main__":

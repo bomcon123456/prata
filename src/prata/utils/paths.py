@@ -15,7 +15,9 @@ def generate_cachepath_from_path(path: Path) -> Path:
     return CACHE_PATH_DIR / md5sum
 
 
-def get_filelist_and_cache(path: Path, glob_str: str) -> List[Path]:
+def get_filelist_and_cache(path: Path, glob_str: str, force_load=False) -> List[Path]:
+    if isinstance(path, str):
+        path = Path(path)
     pathstr = path.resolve().as_posix()
     pathstr_ = pathstr + f"{SECRET}_glob_{glob_str}"
     md5sum = hashlib.md5(pathstr_.encode("utf-8")).hexdigest()
@@ -23,13 +25,19 @@ def get_filelist_and_cache(path: Path, glob_str: str) -> List[Path]:
     reload = True
     filelist = []
     if cachepath.exists():
-        k = input(f"Found filelist cache for {pathstr}, load it? (y/n)")
-        if k.lower() and k == "y":
+        if not force_load:
+            k = input(f"Found filelist cache for {pathstr}, load it? (y/n)")
+            cond = k.lower() and k == "y"
+        else:
+            print(f"Found filelist cache for {pathstr}")
+            cond = True
+
+        if cond:
             with open(cachepath, "rb") as f:
                 filelist = pickle.load(f)
                 reload = False
-        else:
-            reload = True
+    else:
+        reload = True
     if reload:
         filelist = list(path.rglob(glob_str))
         with open(cachepath, "wb") as f:

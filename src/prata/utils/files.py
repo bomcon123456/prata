@@ -94,5 +94,22 @@ def csvs_to_parquet(
     df.to_parquet(output_path.as_posix())
 
 
+@app.command()
+def merge_csvs(
+    csv_dir: Path = typer.Argument(..., help="input csvs", dir_okay=True, exists=True),
+    output_path: Path = typer.Argument(..., help="output path"),
+    column_names: str = typer.Option(None, help="column name"),
+):
+    csv_paths = list(csv_dir.rglob("*.csv"))
+    df = pd.concat(map(pd.read_csv, csv_paths), ignore_index=True)
+    output_path.parent.mkdir(exist_ok=True, parents=True)
+    if column_names is not None:
+        n_cols = len(df.axes[1])
+        column_names = list(map(lambda x: x.strip(), column_names.split(",")))
+        assert len(column_names) == n_cols
+        df.columns = column_names
+    df.to_csv(output_path, index=False)
+
+
 if __name__ == "__main__":
     app()
